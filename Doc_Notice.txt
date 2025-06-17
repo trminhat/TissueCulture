@@ -1,0 +1,53 @@
+THIS FILE IS WRITE THE CALCULATION DOCUMENTS AND SOME NOTICE IN PROJECT.
+
+
+
+
+/* NOTICE: DISCONNECT GPIO 0/2/5/12/15/RST FROM ENA PIN. IT WLL MAKE ESP32 CANNOT WORK AFTER FIRST TIME UPLOAD
+
+    + The GPIO 0/2/5/12/15/RST pin is Strapping Pin, which is used to select the boot mode of the ESP32.
+    + The ENA pin on the CNC Shield V3 is pull-up to 3v3 normally. This pin need to pull-down to GND to enable the driver.
+    + So that, if connect the GPIO12 to ENA pin, it will cause the ESP32 to enter the boot mode and cannot work normally.
+    + So, we need to disconnect the GPIO12 from ENA pin.
+    + If you want to use the ENA pin, you can use any other GPIO pin to control the ENA pin.
+    + The GPIO 12 is used to select the boot mode of the ESP32, so it should not be used as a normal GPIO pin.
+
+*/
+
+
+
+
+
+* ************************************
+Max Frequency posibles:
+    Fmax= 80Mhz / PWM_RESOLUTION 
+
+    PWM_RESOLUTION:
+    Resolution of PWM signal.
+    8 bit = 256 steps ~> 312Khz
+    10 bit = 1024 steps ~> 78Khz
+    12 bit = 4096 steps ~> 19,5Khz
+    14 bit = 16384 steps ~> 4.8Khz
+    16 bit = 65536 steps ~> 1.2Khz
+    20 bit = 1048576 steps ~> 76.2Hz
+
+************************************ */
+
+
+/* ************************************************************************************
+ Calculate Step/mm:
+    . Step/mm = (Motor steps/rev * Mircosteps) / pulley teeth * belt pitch
+    . Step needed = Distance(in mm) * step/mm
+    . Duration = step needed / freq(steps/sec)
+ex:
+    + Motor: 200 steps/rev
+    + Microstepping: 32 (1/32)
+    + Pulley: 20 teeth
+    + Belt: GT2 (2 mm pitch)
+    
+        Step/mm = (200 * 32) / (20 * 2) = 160 steps/mm
+        Move 100mm: Steps needed = 100 * 160 = 16000 steps
+        Duration : Steps needed / 1000(steps/sec) = 16000 / 1000 = 16 sec
+
+        
+************************************************************************************ */
