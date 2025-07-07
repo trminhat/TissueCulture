@@ -2,7 +2,6 @@ THIS FILE IS WRITE THE CALCULATION DOCUMENTS AND SOME NOTICE IN PROJECT.
 
 
 
-
 /* NOTICE: DISCONNECT GPIO 0/2/5/12/15/RST FROM ENA PIN. IT WLL MAKE ESP32 CANNOT WORK AFTER FIRST TIME UPLOAD
 
     + The GPIO 0/2/5/12/15/RST pin is Strapping Pin, which is used to select the boot mode of the ESP32.
@@ -19,6 +18,31 @@ THIS FILE IS WRITE THE CALCULATION DOCUMENTS AND SOME NOTICE IN PROJECT.
 
 
 * ************************************
+/*
+ * This group/channel/timmer mapping is for information only;
+ * the details are handled by lower-level code
+ *
+ * Group/Channel/Timer Mapping:
+ ** Group: 0, Channel: 0, Timer: 0
+ ** Group: 0, Channel: 1, Timer: 0
+ ** Group: 0, Channel: 2, Timer: 1
+ ** Group: 0, Channel: 3, Timer: 1
+ ** Group: 0, Channel: 4, Timer: 2
+ ** Group: 0, Channel: 5, Timer: 2
+ ** Group: 0, Channel: 6, Timer: 3
+ ** Group: 0, Channel: 7, Timer: 3
+
+ ** Group: 1, Channel: 0, Timer: 0
+ ** Group: 1, Channel: 1, Timer: 0
+ ** Group: 1, Channel: 2, Timer: 1
+ ** Group: 1, Channel: 3, Timer: 1
+ ** Group: 1, Channel: 4, Timer: 2
+ ** Group: 1, Channel: 5, Timer: 2
+ ** Group: 1, Channel: 6, Timer: 3
+ ** Group: 1, Channel: 7, Timer: 3
+
+ */
+
 Max Frequency posibles:
     Fmax= 80Mhz / PWM_RESOLUTION 
 
@@ -46,8 +70,11 @@ ex:
     + Belt: GT2 (2 mm pitch)
     
         Step/mm = (200 * 32) / (20 * 2) = 160 steps/mm
-        Move 100mm: Steps needed = 100 * 160 = 16000 steps
+        Move 100mm(10cm): Steps needed = 100 * 160 = 16000 steps
         Duration : Steps needed / 1000(steps/sec) = 16000 / 1000 = 16 sec
 
         
 ************************************************************************************ */
+
+
+
