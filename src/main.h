@@ -23,7 +23,7 @@
 #define X_AXIS_STEP 26
 #define Y_AXIS_STEP 25
 #define Z_AXIS_STEP 17
-#define X_AXIS_DIR 16
+#define X_AXIS_DIR 18
 #define Y_AXIS_DIR 19
 #define Z_AXIS_DIR 14
 
