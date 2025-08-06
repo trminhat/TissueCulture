@@ -22,15 +22,15 @@
 // #define ENABLE_DRV_DEFAULT 12  ~> 
 #define X_AXIS_STEP 26
 #define Y_AXIS_STEP 25
-#define Z_AXIS_STEP 17
+#define Z_AXIS_STEP 23
 #define X_AXIS_DIR 18
 #define Y_AXIS_DIR 19
 #define Z_AXIS_DIR 14
 
 /* Limit Switch */
 #define X_AXIS_LIMIT 13
-#define Y_AXIS_LIMIT 5
-#define Z_AXIS_LIMIT 23
+#define Y_AXIS_LIMIT 27
+// #define Z_AXIS_LIMIT 23
 
 #define CW 1
 #define CCW 0
