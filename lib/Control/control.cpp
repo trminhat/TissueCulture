@@ -31,12 +31,10 @@ void Control::setup()
     driverX.begin();                    // Initialize TMC2209 driver for X axis
     driverX.rms_current(450);           // Setting 80% of current rate limit of stepper motor in mA
     driverX.microsteps(MICRO_STEPPING); // Set microstepping to 32
-    driverX.pwm_autoscale(true);        // Enable automatic scaling of PWM frequency
 
     driverY1.begin(); // Initialize TMC2209 driver for Y1 axis
     driverY1.rms_current(450);
     driverY1.microsteps(MICRO_STEPPING);
-    driverY1.pwm_autoscale(true);
 
     driverY2.begin(); // Initialize TMC2209 driver for Y2 axis
     driverY2.rms_current(450);
@@ -46,13 +44,38 @@ void Control::setup()
     driverZ.begin(); // Initialize TMC2209 driver for Z axis
     driverZ.rms_current(450);
     driverZ.microsteps(MICRO_STEPPING);
-    driverZ.pwm_autoscale(true);
 
     // Check UART connection for each driver
     checkConnection(driverX, "X Axis");
     checkConnection(driverY1, "Y1 Axis");
     checkConnection(driverY2, "Y2 Axis");
     checkConnection(driverZ, "Z Axis");
+}
+void Control::setSpreadCycle()
+{
+    // Set all drivers to SpreadCycle mode
+    driverX.en_spreadCycle(true);
+    driverY1.en_spreadCycle(true);
+    driverY2.en_spreadCycle(true);
+    driverZ.en_spreadCycle(true);
+
+    Serial.println("SpreadCycle mode set for all drivers.");
+}
+
+void Control::setStealthChop()
+{
+    // Set all drivers to StealthChop mode
+    driverX.en_spreadCycle(false);
+    driverY1.en_spreadCycle(false);
+    driverY2.en_spreadCycle(false);
+    driverZ.en_spreadCycle(false);
+
+    driverX.pwm_autoscale(true);        // Enable automatic scaling of PWM frequency
+    driverY1.pwm_autoscale(true);       // Enable automatic scaling of PWM frequency
+    driverY2.pwm_autoscale(true);       // Enable automatic scaling of PWM frequency
+    driverZ.pwm_autoscale(true);        // Enable automatic scaling of PWM frequency
+
+    Serial.println("StealthChop mode set for all drivers.");
 }
 
 void Control::setupMaterial(FeedBags _feedBags, Foils _foils)
@@ -162,7 +185,10 @@ void Control::XHoming()
 
     // This is the true home position. Set it to 0.
     stepperX.setCurrentPosition(0);
+    HomeX = stepperX.currentPosition(); // Store the home position for X axis
     Serial.println("Homing X complete. Position set to 0.");
+    Serial.printf("Home X: %ld\n", HomeX);
+
 
     // --- Restore original settings ---
     stepperX.setMaxSpeed(originalMaxSpeed);
@@ -212,7 +238,9 @@ void Control::YHoming()
 
     // This is the true home position. Set it to 0.
     stepperY.setCurrentPosition(0);
+    HomeY = stepperY.currentPosition(); // Store the home position for Y axis
     Serial.println("Homing Y complete. Position set to 0.");
+    Serial.printf("Home Y: %ld", HomeY);
 
     // --- Restore original settings ---
     stepperY.setMaxSpeed(originalMaxSpeed);
@@ -259,6 +287,7 @@ void Control::YHoming()
 
 //     // This is the true home position. Set it to 0.
 //     stepperZ.setCurrentPosition(0);
+//     HomeZ = stepperZ.currentPosition(); // Store the home position for Z axis
 //     Serial.println("Homing Z complete. Position set to 0.");
 
 //     // --- Restore original settings ---

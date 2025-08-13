@@ -76,17 +76,23 @@ class Control
 public:
     Control(uint16_t workLength, uint16_t workWidth, uint16_t workHeight);
     // Access to shared stepper instances
-    static AccelStepper &getStepperX();
-    static AccelStepper &getStepperY();
-    static AccelStepper &getStepperZ();
     void setup();
     void setupMaterial(FeedBags _feedBags, Foils _foils);
+    void setSpreadCycle();
+    void setStealthChop();
     void checkConnection(TMC2209Stepper &driver, const char *axisName);
     void Homing();
     void XHoming();
     void YHoming();
     // void ZHoming();
 
+    long getHomeX() const { return HomeX; }
+    long getHomeY() const { return HomeY; }
+    long getHomeZ() const { return HomeZ; }
+    
+    static AccelStepper &getStepperX();
+    static AccelStepper &getStepperY();
+    static AccelStepper &getStepperZ();
     ~Control() = default;
 
 private:
@@ -99,6 +105,10 @@ private:
     static AccelStepper stepperX;
     static AccelStepper stepperY;
     static AccelStepper stepperZ;
+
+    long HomeX;
+    long HomeY;
+    long HomeZ;
 
     // Work area dimensions
     WorkArea workArea;
