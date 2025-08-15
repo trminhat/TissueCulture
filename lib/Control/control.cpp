@@ -7,9 +7,7 @@ AccelStepper Control::stepperZ(AccelStepper::DRIVER, Z_AXIS_STEP, Z_AXIS_DIR);
 
 Control::Control(uint16_t workLength, uint16_t workWidth, uint16_t workHeight)
 {
-    // Constructor for Control class
-    // Define stepper instances (moved from header)
-    // You can initialize any member variables here if needed
+    
     workArea.length = workLength;
     workArea.width = workWidth;
     workArea.height = workHeight;
@@ -19,10 +17,10 @@ Control::Control(uint16_t workLength, uint16_t workWidth, uint16_t workHeight)
 }
 
 
-void Control::setup()
+void Control::setup(FeedBags _feedBags, Foils _foils)
 {
     Serial2.begin(115200, SERIAL_8N1, RX2, TX2); // Initialize Serial2 for TMC2209
-
+    setupMaterial(_feedBags, _foils); // Setup material properties
     pinMode(limitX, INPUT_PULLUP); // Set limit switch pins as input with pull-up
     pinMode(limitY, INPUT_PULLUP);
     // pinMode(limitZ, INPUT_PULLUP); // Not used, but defined for consistency
@@ -92,6 +90,8 @@ void Control::setupMaterial(FeedBags _feedBags, Foils _foils)
     Serial.print(feedBags.width);
     Serial.print("mm, Height: ");
     Serial.println(feedBags.height);
+    Serial.print("Clearance: ");
+    Serial.println(feedBags.clearance);
 
     Serial.print("Foils: ");
     Serial.print(foils.qty);
@@ -101,6 +101,8 @@ void Control::setupMaterial(FeedBags _feedBags, Foils _foils)
     Serial.print(foils.width);
     Serial.print("mm, Height: ");
     Serial.println(foils.height);
+    Serial.print("Clearance: ");
+    Serial.println(foils.clearance);
 
 }
 
@@ -127,11 +129,19 @@ void Control::checkConnection(TMC2209Stepper &driver, const char *axisName)
     }
 }
 
-float Control::stepsToMM(float mm)
+float Control::distanceMM(long mm)
 {
     long steps = (STEPS_PER_REVOLUTION * MICRO_STEPPING) / (PULLEY_TEETH * BELL_PITCH); // 200 steps per revolution, 32 microsteps, 20 teeth pulley, 2 mm pitch
     float stepsNeeded = mm * steps;                                                     // Convert mm to steps
     return stepsNeeded;
+}
+
+long Control::currentMM(AccelStepper &stepper)
+{
+    long currentPositionSteps = stepper.currentPosition(); // Get current position in steps
+    long currentPositionMM  = currentPositionSteps * (PULLEY_TEETH * BELL_PITCH) / (STEPS_PER_REVOLUTION * MICRO_STEPPING); // Convert steps to mm
+    return currentPositionMM;
+  
 }
 
 void Control::Homing()
@@ -168,7 +178,7 @@ void Control::XHoming()
     Serial.println("First pass complete.");
 
     // --- Back off the switch ---
-    stepperX.moveTo(stepsToMM(10)); // Move 5mm away from the switch
+    stepperX.moveTo(distanceMM(10)); // Move 5mm away from the switch
     stepperX.runToPosition();       // Blocking call to ensure it finishes
     Serial.println("Backed off switch.");
 
@@ -221,7 +231,7 @@ void Control::YHoming()
     Serial.println("First pass complete.");
 
     // --- Back off the switch ---
-    stepperY.moveTo(stepsToMM(10)); // Move 5mm away from the switch
+    stepperY.moveTo(distanceMM(10)); // Move 5mm away from the switch
     stepperY.runToPosition();       // Blocking call to ensure it finishes
     Serial.println("Backed off switch.");
 
@@ -295,6 +305,72 @@ void Control::YHoming()
 //     stepperZ.setAcceleration(originalAcceleration);
 // }
 
+void Control::GoBackToHome()
+{
+    // Move all axes back to their home positions
+    XBackToHome();
+    YBackToHome();
+    ZBackToHome();
+}
+
+void Control::XBackToHome()
+{
+    Serial.println("Moving X axis back to home position...");
+    stepperX.moveTo(HomeX); // Move to the stored home position
+    stepperX.runToPosition(); // Blocking call to ensure it finishes
+    Serial.println("X axis back to home position.");
+}
+void Control::YBackToHome()
+{
+    Serial.println("Moving Y axis back to home position...");
+    stepperY.moveTo(HomeY); // Move to the stored home position
+    stepperY.runToPosition(); // Blocking call to ensure it finishes
+    Serial.println("Y axis back to home position.");
+}
+void Control::ZBackToHome()
+{
+    Serial.println("Moving Z axis back to home position...");
+    stepperZ.moveTo(HomeZ); // Move to the stored home position
+    stepperZ.runToPosition(); // Blocking call to ensure it finishes
+    Serial.println("Z axis back to home position.");
+}
+
+void Control::goToFeedBags()
+{
+    stepperX.moveTo(distanceMM(100)); // Move X stepper to the specified distance in mm
+    stepperX.runToPosition(); // Blocking call to ensure it finishes
+    stepperY.moveTo(distanceMM(300)); // Move Y stepper to the specified distance
+    stepperY.runToPosition(); // Blocking call to ensure it finishes
+
+    Serial.printf("Stepper X is moved: %ld mm\t", currentMM(stepperX));
+    Serial.printf("Stepper Y is moved: %ld mm\n", currentMM(stepperY));
+    delay(2000);
+
+     stepperX.move(distanceMM(400)); // Move X stepper to the specified distance in mm
+    stepperX.runToPosition(); // Blocking call to ensure it finishes
+    stepperY.move(distanceMM(200)); // Move Y stepper to the specified distance
+    stepperY.runToPosition(); // Blocking call to ensure it finishes
+
+    Serial.printf("Stepper X is moved: %ld mm\t", currentMM(stepperX));
+    Serial.printf("Stepper Y is moved: %ld mm\n", currentMM(stepperY));
+    delay(2000);
+
+    // while(currentBag < feedBags.qty) {
+    //     Serial.print("Moving to feed bag ");
+        
+
+    //     currentBag++;
+    // }
+}
+
+void Control::goToFoils()
+{
+    while(currentFoil < foils.qty) {
+        Serial.print("Moving to foil ");
+        // Implement movement logic here
+        currentFoil++;
+    }
+}
 
 // Getter implementations for external access
 AccelStepper &Control::getStepperX() { return stepperX; }

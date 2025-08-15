@@ -53,6 +53,7 @@ typedef struct FeedBags{
     uint16_t length; // Length of the feed bag in mm
     uint16_t width;  // Width of the feed bag in mm
     uint16_t height; // Height of the feed bag in mm
+    uint8_t clearance; // Clearance for the feed bags in mm
 
 } FeedBags;
 
@@ -61,6 +62,7 @@ typedef struct Foils{
     uint16_t length; // Length of the foil in mm
     uint16_t width;  // Width of the foil in mm
     uint16_t height; // Height of the foil in mm
+    uint8_t clearance; // Clearance for the feed bags in mm
 
 } Foils;
 
@@ -76,8 +78,7 @@ class Control
 public:
     Control(uint16_t workLength, uint16_t workWidth, uint16_t workHeight);
     // Access to shared stepper instances
-    void setup();
-    void setupMaterial(FeedBags _feedBags, Foils _foils);
+    void setup(FeedBags _feedBags, Foils _foils);
     void setSpreadCycle();
     void setStealthChop();
     void checkConnection(TMC2209Stepper &driver, const char *axisName);
@@ -85,17 +86,29 @@ public:
     void XHoming();
     void YHoming();
     // void ZHoming();
-
+    void GoBackToHome();
+    void XBackToHome();
+    void YBackToHome();
+    void ZBackToHome();
+    
     long getHomeX() const { return HomeX; }
     long getHomeY() const { return HomeY; }
     long getHomeZ() const { return HomeZ; }
     
+    /* Sequency Functions */
+    void goToFeedBags();
+    void goToFoils();
+    void goToWorkArea();
+    
+
     static AccelStepper &getStepperX();
     static AccelStepper &getStepperY();
     static AccelStepper &getStepperZ();
     ~Control() = default;
 
 private:
+    void setupMaterial(FeedBags _feedBags, Foils _foils);
+
     TMC2209Stepper driverX = TMC2209Stepper(&Serial2, R_SENSE, DRIVER_X_ADDRESS);
     TMC2209Stepper driverY1 = TMC2209Stepper(&Serial2, R_SENSE, DRIVER_Y1_ADDRESS);
     TMC2209Stepper driverY2 = TMC2209Stepper(&Serial2, R_SENSE, DRIVER_Y2_ADDRESS);
@@ -116,8 +129,13 @@ private:
     FeedBags feedBags;
     Foils foils;
 
-    float stepsToMM(float mm);
+    float distanceMM(long mm);
+    long currentMM(AccelStepper &stepper);
+    
     uint8_t limitX = X_AXIS_LIMIT;
     uint8_t limitY = Y_AXIS_LIMIT;
     // uint8_t limitZ = Z_AXIS_LIMIT; // Not used, but defined for consistency
+
+     uint8_t currentBag = 0; // Current bag index
+     uint8_t currentFoil = 0; // Current foil index
 };
