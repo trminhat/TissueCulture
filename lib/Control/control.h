@@ -38,7 +38,7 @@
 #define DRIVER_Z_ADDRESS 0b11  // MS1 and MS2 are HIGH, so address is 0b11
 
 #define MAX_SPEED 100000   // Maximum speed for the steppers
-#define ACCELERATION 80000 // Acceleration for the steppers
+#define ACCELERATION 10000 // Acceleration for the steppers
 
 // TMC2209 UART settings
 #define R_SENSE 0.11f // typical sense resistor
@@ -49,20 +49,20 @@
 #define STEPS_PER_REVOLUTION 200 // Steps per revolution for the stepper motor
 
 typedef struct FeedBags{
-    uint8_t qty;    // Quantity of feed bags
-    uint16_t length; // Length of the feed bag in mm
-    uint16_t width;  // Width of the feed bag in mm
+    uint8_t column;
+    uint8_t row; // Number of rows of feed bags
+    uint16_t radius; // Radius of the feed bag in mm
     uint16_t height; // Height of the feed bag in mm
-    uint8_t clearance; // Clearance for the feed bags in mm
-
+    uint16_t clearanceX; // Clearance of X direction for the feed bags in mm
+    uint16_t clearanceY; // Clearance of Y direction for the feed bags in mm
 } FeedBags;
 
 typedef struct Foils{
-    uint8_t qty;    // Quantity of foils
-    uint16_t length; // Length of the foil in mm
-    uint16_t width;  // Width of the foil in mm
+    uint16_t qty;
+    uint16_t radius; // Radius of the feed bag in mm
     uint16_t height; // Height of the foil in mm
-    uint8_t clearance; // Clearance for the feed bags in mm
+    uint16_t clearanceX; // Clearance of X directoion for the feed bags in mm
+    uint16_t clearanceY; // Clearance of Y direction for the feed bags in mm
 
 } Foils;
 
@@ -72,13 +72,18 @@ typedef struct WorkArea{
     uint16_t height; // Height of the work area in mm
 
 } WorkArea;
+typedef struct FoilHolder{
+    uint16_t qtyFoils;
+    uint16_t length; // Length of the foil holder in mm
+    uint16_t width;  // Width of the foil holder in mm
+}FoilsHolder;
 
 class Control
 {
 public:
     Control(uint16_t workLength, uint16_t workWidth, uint16_t workHeight);
     // Access to shared stepper instances
-    void setup(FeedBags _feedBags, Foils _foils);
+    void setup(FeedBags _feedBags, Foils _foils, FoilsHolder _holder); // Setup the control system with feed bags and foils
     void setSpreadCycle();
     void setStealthChop();
     void checkConnection(TMC2209Stepper &driver, const char *axisName);
@@ -95,11 +100,17 @@ public:
     long getHomeY() const { return HomeY; }
     long getHomeZ() const { return HomeZ; }
     
+    uint16_t getCurrentBags()  const { return currentBag;  }
+    uint16_t getCurrentFoils() const { return currentFoil; }
+
     /* Sequency Functions */
     void goToFeedBags();
     void goToFoils();
-    void goToWorkArea();
-    
+    void goToHolder();
+    void nextColumnBags();
+    void nextRowBags();
+    void runSequence();
+
 
     static AccelStepper &getStepperX();
     static AccelStepper &getStepperY();
@@ -107,7 +118,9 @@ public:
     ~Control() = default;
 
 private:
-    void setupMaterial(FeedBags _feedBags, Foils _foils);
+    void setupMaterial(FeedBags _feedBags, Foils _foils, FoilsHolder _holder); // Setup material properties
+    long distanceMM(uint16_t mm);
+    long currentMM(AccelStepper &stepper);
 
     TMC2209Stepper driverX = TMC2209Stepper(&Serial2, R_SENSE, DRIVER_X_ADDRESS);
     TMC2209Stepper driverY1 = TMC2209Stepper(&Serial2, R_SENSE, DRIVER_Y1_ADDRESS);
@@ -122,20 +135,34 @@ private:
     long HomeX;
     long HomeY;
     long HomeZ;
+    uint8_t stepPerRev = 200;
+    uint8_t microstep = 32;
+    uint8_t pulley = 20;
+    uint8_t bell = 2;
 
     // Work area dimensions
     WorkArea workArea;
     // Feed bags and foils
     FeedBags feedBags;
     Foils foils;
+    FoilsHolder holder;
 
-    float distanceMM(long mm);
-    long currentMM(AccelStepper &stepper);
-    
     uint8_t limitX = X_AXIS_LIMIT;
     uint8_t limitY = Y_AXIS_LIMIT;
     // uint8_t limitZ = Z_AXIS_LIMIT; // Not used, but defined for consistency
 
-     uint8_t currentBag = 0; // Current bag index
-     uint8_t currentFoil = 0; // Current foil index
+    uint16_t currentBag = 0; // Current bag index
+    uint16_t currentFoil = 0; // Current foil index
+    bool isLastColumnBags = false; // Flag to check if it's the last column of feed bags
+    bool isLastRowBags = false; // Flag to check if it's the last row
+    bool isFoilsDoneProcess = false; // Flag to check if foils processing is done
+   
+    long currentPositionX = 0; // Current position of the X axis in mm
+    long currentPositionY = 0; // Current position of the Y axis in mm
+    long currentPositionZ = 0; // Current position of the Z axis in mm
+
+    long firstBagPositionX = 0; // Position of the first bag in X axis
+    long firstBagPositionY = 0; // Position of the first bag in Y axis
+    long firstBagPositionZ = 0; // Position of the first bag in Y axis
+
 };
