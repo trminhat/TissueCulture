@@ -286,8 +286,8 @@ void Control::YHoming()
         // This is the true home position. Set it to 0.
         stepperY.setCurrentPosition(0);
         HomeY = stepperY.currentPosition(); // Store the home position for Y axis
-        Serial.println("Homing Y complete. Position set to 0.");
-        Serial.printf("Home Y: %ld", HomeY);
+        Serial.printf("Homing Y complete. Position set to 0.\n");
+        Serial.printf("Home Y: %ld\n", HomeY);
 
         // --- Restore original settings ---
         stepperY.setMaxSpeed(originalMaxSpeed);
@@ -385,14 +385,18 @@ void Control::goToFeedBags()
     uint16_t borderX = 100;
     uint16_t borderY = 100;
 
-    Serial.print("Moving to feed bag ");
+    // Serial.print("Moving to feed bag ");
     Serial.print(currentBag);
     Serial.print(" of ");
     Serial.print(feedBags.column * feedBags.row);
     Serial.println("...");
+    
+    Serial.printf("Current Position X: %ld mm\t", currentPositionX);
+    Serial.printf("Current Position Y: %ld mm\n", currentPositionY);
+    
     if (currentBag < 1)
     {
-        Serial.println("Moving to first feed bag...");
+        // Serial.println("Moving to first feed bag...");
         stepperX.moveTo(distanceMM(borderX + feedBags.radius));     // Move to the first feed bag position
         stepperY.moveTo(distanceMM(borderY + feedBags.height / 2)); // Center Y position for the first bag
         while (stepperX.distanceToGo() != 0 || stepperY.distanceToGo() != 0)
@@ -400,7 +404,7 @@ void Control::goToFeedBags()
             stepperX.run();
             stepperY.run();
         }
-        Serial.println("Reached first feed bag.");
+        // Serial.println("Reached first feed bag.");
         firstBagPositionX = currentMM(stepperX);
         firstBagPositionY = currentMM(stepperY);
         currentPositionX = firstBagPositionX;
@@ -416,20 +420,16 @@ void Control::goToFeedBags()
     }
     else
     {
-        Serial.println("Moving to next feed bag...");
-        Serial.printf("Current Position X: %ld mm\n", currentPositionX);
-        Serial.printf("Current Position Y: %ld mm\n", currentPositionY);
-        Serial.printf("isLastColumnBags: %d\n", isLastColumnBags);
-        Serial.printf("isLastRowBag: %d\n", isLastRowBags);
-        Serial.printf("IsFoilsDoneProcess: %d\n", isFoilsDoneProcess);
-        if (isFoilsDoneProcess || isLastRowBags)
+        // Serial.println("Moving to next feed bag...");
+
+        if (isFoilsDoneProcess)
         {
             nextColumnBags(); // Move to the next column if not at the last column
         }
         if (isLastColumnBags)
         {
             if (isFoilsDoneProcess)
-            {
+            { 
                 stepperX.moveTo(distanceMM(firstBagPositionX)); // Reset X to first column
                 stepperX.runToPosition();                       // Blocking call to ensure it finishes
                 currentPositionX = currentMM(stepperX);         // Update current bag position in X
@@ -450,17 +450,18 @@ void Control::goToFoils()
     if (currentFoil <= foils.qty)
     {
         goToHolder(); // Move to the foil holder first
+        // Serial.print("Moving to foil ");
+        // Serial.print(currentFoil);
+        // Serial.print(" of ");
+        // Serial.print(foils.qty);
+        // Serial.println("...");
+       
         /* Pick the foils here */
-
-        /* back to current Bag */
-        Serial.print("Moving to foil ");
-        Serial.print(currentFoil);
-        Serial.print(" of ");
-        Serial.print(foils.qty);
-        Serial.println("...");
+        
+        // /* back to current Bag */
         if (currentBag < 1)
         {
-            Serial.println("Moving to first foil...");
+            // Serial.println("Moving to first foil...");
             stepperX.moveTo(distanceMM(firstBagPositionX)); // Move to the first feed bag position
             stepperY.moveTo(distanceMM(firstBagPositionY)); // Center Y position for the first bag
             while (stepperX.distanceToGo() != 0 || stepperY.distanceToGo() != 0)
@@ -471,6 +472,13 @@ void Control::goToFoils()
             if (currentFoil < foils.qty)
             {
                 /* Place foil into FeedBag here */
+                 stepperX.move(distanceMM(2)); // Move to the next foil position
+                stepperY.move(distanceMM(2)); // Adjust Y position based on column
+                while (stepperX.distanceToGo() != 0 || stepperY.distanceToGo() != 0)
+                {
+                    stepperX.run();
+                    stepperY.run();
+                }
 
                 currentFoil++; // Increment the foil index
             }
@@ -497,7 +505,7 @@ void Control::goToFoils()
                 stepperX.run();
                 stepperY.run();
             }
-            Serial.println("Moving to next foil...");
+            // Serial.println("Moving to next foil...");
             if (currentFoil < foils.qty)
             {
                 /* Place the Foils into FeedBags here */
@@ -505,21 +513,21 @@ void Control::goToFoils()
                 // float angleInRadians = 90 * PI / 180.0;
                 // float targetX_mm = currentMM(stepperX) + foils.radius * cos(angleInRadians);
                 // float targetY_mm = currentMM(stepperY) + foils.radius * sin(angleInRadians);
-                // stepperX.move(distanceMM(angleInRadians)); // Move to the next foil position
-                // stepperY.move(distanceMM(angleInRadians)); // Adjust Y position based on column
-                // while (stepperX.distanceToGo() != 0 || stepperY.distanceToGo() != 0)
-                // {
-                //     stepperX.run();
-                //     stepperY.run();
-                // } // Blocking call to ensure it finishes
-                // Serial.println("Reached next foil.");
+                stepperX.move(distanceMM(2)); // Move to the next foil position
+                stepperY.move(distanceMM(2)); // Adjust Y position based on column
+                while (stepperX.distanceToGo() != 0 || stepperY.distanceToGo() != 0)
+                {
+                    stepperX.run();
+                    stepperY.run();
+                } // Blocking call to ensure it finishes
+                Serial.println("Reached next foil.");
                 currentFoil++; // Increment the foil index
             }
             else
             {
                 isFoilsDoneProcess = true; // Set flag to indicate foils processing is done
                 currentFoil = 0;           // Reset foil index
-                Serial.println("No more foils to pick.");
+                // Serial.println("No more foils to pick.");
             }
         }
     }
@@ -543,18 +551,6 @@ void Control::goToHolder()
         }
     }
     // Serial.println("Reached foil holder.");
-
-    // if (stepperX.currentPosition() != holder.length)
-    // {
-    //     stepperX.moveTo(distanceMM(holder.length / 2)); // Example movement, adjust as needed
-    //     stepperX.runToPosition();                       // Blocking call to ensure it finishes
-    // }
-
-    // if (stepperY.currentPosition() != holder.width)
-    // {
-    //     stepperY.moveTo(distanceMM(holder.width / 2)); // Example movement, adjust as needed
-    //     stepperY.runToPosition();                      // Blocking call to ensure it finishes
-    // }
 }
 
 void Control::nextColumnBags()
@@ -562,26 +558,20 @@ void Control::nextColumnBags()
     /* Column - 1: without first bags */
     if (currentMM(stepperX) < ((feedBags.column - 1) * feedBags.clearanceX + firstBagPositionX))
     {
-        Serial.printf("DistanceMM: %ld\n", distanceMM(feedBags.clearanceX));
         stepperX.move(distanceMM(feedBags.clearanceX)); // Move to the next column position
         stepperX.runToPosition();                       // Blocking call to ensure it finishes
-        Serial.printf("CurrentMM: %ld\n", currentMM(stepperX));
         currentPositionX = currentMM(stepperX); // Update current bag position in X
         isLastColumnBags = false;               // Reset flag as we are not at the last column yet
-        Serial.printf("Current Position X: %ld\n", currentPositionX);
-        Serial.printf("Total Distance X: %ld\n", (feedBags.column - 1) * feedBags.clearanceX + firstBagPositionX);
     }
     else
     {
         Serial.println("Reached end of column holder.");
         isLastColumnBags = true; // Set flag to indicate last column
     }
-    Serial.printf("isLastColumnBags: %d\n", isLastColumnBags);
 }
 
 void Control::nextRowBags()
 {
-    Serial.printf("[Before]Current Position Y: %ld\n", currentPositionY);
     /* Row - 1: without first bags */
     if (currentMM(stepperY) < ((feedBags.row - 1) * feedBags.clearanceY + firstBagPositionY))
     {
@@ -595,10 +585,6 @@ void Control::nextRowBags()
         Serial.println("Reached end of row holder.");
         isLastRowBags = true; // Set flag to indicate last row
     }
-    // if(currentPositionY == ((feedBags.row - 1) * feedBags.clearanceY + firstBagPositionY))
-    //     isLastRowBags = true;
-    // else isLastColumnBags = false;
-    Serial.printf("[After]Current Position Y: %ld\n", currentPositionY);
 }
 
 void Control::runSequence()

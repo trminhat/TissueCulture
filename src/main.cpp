@@ -10,8 +10,8 @@ uint16_t qtyBags = feedBags.column * feedBags.row; // Calculate total quantity o
 void setup(){
   Serial.begin(115200); // Initialize Serial for debugging
   control.setup(feedBags, foils, holder); // Setup the control system
-  // control.setSpreadCycle(); // Set SpreadCycle mode for all drivers
-  control.setStealthChop(); // Set StealthChop mode for all drivers
+  control.setSpreadCycle(); // Set SpreadCycle mode for all drivers
+  // control.setStealthChop(); // Set StealthChop mode for all drivers
   Serial.println("Setup complete. All axes homed.");
   
   Control::getStepperX().setMaxSpeed(MAX_SPEED); // Set max speed for X stepper
@@ -26,10 +26,10 @@ void setup(){
 void loop(){
   control.goToHolder();
   delay(1000); // Wait for a second before next operation
-  while(control.getCurrentBags() < qtyBags){
+  while(control.getCurrentBags() <= qtyBags){
     control.goToFeedBags(); // Move to feed bags
     delay(10);
-   
   }
-  delay(1000); // Wait for a second before next operation
+  // Serial.printf("Finished Sequency\n");
+  // delay(10000); // Wait for a second before next operation
 }

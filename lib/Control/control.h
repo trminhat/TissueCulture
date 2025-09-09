@@ -37,8 +37,11 @@
 #define DRIVER_Y2_ADDRESS 0b10 // MS1 is LOW, MS2 is HIGH
 #define DRIVER_Z_ADDRESS 0b11  // MS1 and MS2 are HIGH, so address is 0b11
 
-#define MAX_SPEED 100000   // Maximum speed for the steppers
-#define ACCELERATION 10000 // Acceleration for the steppers
+// #define MAX_SPEED 100000   // Maximum speed for the steppers
+// #define ACCELERATION 10000 // Acceleration for the steppers
+
+#define MAX_SPEED 200000   // Maximum speed for the steppers
+#define ACCELERATION 100000 // Acceleration for the steppers
 
 // TMC2209 UART settings
 #define R_SENSE 0.11f // typical sense resistor
