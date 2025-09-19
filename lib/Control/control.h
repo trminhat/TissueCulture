@@ -37,11 +37,12 @@
 #define DRIVER_Y2_ADDRESS 0b10 // MS1 is LOW, MS2 is HIGH
 #define DRIVER_Z_ADDRESS 0b11  // MS1 and MS2 are HIGH, so address is 0b11
 
-// #define MAX_SPEED 200000   // Maximum speed for the steppers
-// #define ACCELERATION 100000 // Acceleration for the steppers
+#define MAX_SPEED_100KHZ 100000   // Maximum speed for the steppers
+#define MAX_SPEED_200KHZ 200000   // Maximum speed for the steppers
 
-#define MAX_SPEED 100000   // Maximum speed for the steppers
-#define ACCELERATION 80000 // Acceleration for the steppers
+#define ACCELERATION_50KHZ 50000 // Acceleration for the steppers
+#define ACCELERATION_80KHZ 80000 // Acceleration for the steppers
+#define ACCELERATION_100KHZ 100000 // Acceleration for the steppers
 
 // TMC2209 UART settings
 #define R_SENSE 0.11f // typical sense resistor
@@ -89,7 +90,13 @@ public:
     // Access to shared stepper instances
     void setup(FeedBags _feedBags, Foils _foils, FoilsHolder _holder); // Setup the control system with feed bags and foils
     void setSpreadCycle();
+    void setSpreadCycle(const char axis);
     void setStealthChop();
+    void setStealthChop(const char axis);
+
+    void setMaxSpeed(const char axis, float speed);
+    void setAcceleration(const char axis, float acceleration);
+
     void checkConnection(TMC2209Stepper &driver, const char *axisName);
     void Homing();
     void XHoming();

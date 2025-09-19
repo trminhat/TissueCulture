@@ -69,6 +69,35 @@ void Control::setSpreadCycle()
     Serial.println("SpreadCycle mode set for all drivers.");
 }
 
+void Control::setSpreadCycle(const char axis)
+{
+    switch (axis)
+    {
+    case 'X':
+    case 'x':
+        driverX.en_spreadCycle(true);
+        Serial.println("StealthChop mode set for X driver.");
+        break;
+
+    case 'Y':
+    case 'y':
+        driverY1.en_spreadCycle(true);
+        driverY2.en_spreadCycle(true);
+        Serial.println("StealthChop mode set for Y drivers.");
+        break;
+
+    case 'Z':
+    case 'z':
+        driverZ.en_spreadCycle(true);
+        Serial.println("StealthChop mode set for Z driver.");
+        break;
+
+    default:
+        Serial.println("Invalid axis specified. Use 'X', 'Y', or 'Z'.");
+        break;
+    }
+}
+
 void Control::setStealthChop()
 {
     // Set all drivers to StealthChop mode
@@ -83,6 +112,102 @@ void Control::setStealthChop()
     driverZ.pwm_autoscale(true);  // Enable automatic scaling of PWM frequency
 
     Serial.println("StealthChop mode set for all drivers.");
+}
+
+
+void Control::setStealthChop(const char axis)
+{
+    switch (axis)
+    {
+    case 'X':
+    case 'x':
+        driverX.en_spreadCycle(false);
+        driverX.pwm_autoscale(true); // Enable automatic scaling of PWM frequency
+        Serial.println("StealthChop mode set for X driver.");
+        break;
+
+    case 'Y':
+    case 'y':
+        driverY1.en_spreadCycle(false);
+        driverY2.en_spreadCycle(false);
+        driverY1.pwm_autoscale(true); // Enable automatic scaling of PWM frequency
+        driverY2.pwm_autoscale(true); // Enable automatic scaling of PWM frequency
+        Serial.println("StealthChop mode set for Y drivers.");
+        break;
+
+    case 'Z':
+    case 'z':
+        driverZ.en_spreadCycle(false);
+        driverZ.pwm_autoscale(true); // Enable automatic scaling of PWM frequency
+        Serial.println("StealthChop mode set for Z driver.");
+        break;
+
+    default:
+        Serial.println("Invalid axis specified. Use 'X', 'Y', or 'Z'.");
+        break;
+    }
+}
+
+void Control::setMaxSpeed(const char axis, float speed)
+{
+    switch (axis)
+    {
+    case 'X':
+    case 'x':
+        stepperX.setMaxSpeed(speed);
+        Serial.print("Max speed for X axis set to ");
+        Serial.println(speed);
+        break;
+
+    case 'Y':
+    case 'y':
+        stepperY.setMaxSpeed(speed);
+        Serial.print("Max speed for Y axis set to ");
+        Serial.println(speed);
+        break;
+
+    case 'Z':
+    case 'z':
+        stepperZ.setMaxSpeed(speed);
+        Serial.print("Max speed for Z axis set to ");
+        Serial.println(speed);
+        break;
+
+    default:
+        Serial.println("Invalid axis specified. Use 'X', 'Y', or 'Z'.");
+        break;
+    }
+}
+
+void Control::setAcceleration(const char axis, float acceleration)
+{
+    switch (axis)
+    {
+    case 'X':
+    case 'x':
+        stepperX.setAcceleration(acceleration);
+        Serial.print("Acceleration for X axis set to ");
+        Serial.println(acceleration);
+        break;
+
+    case 'Y':
+    case 'y':
+        stepperY.setAcceleration(acceleration);
+        Serial.print("Acceleration for Y axis set to ");
+        Serial.println(acceleration);
+        break;
+
+    case 'Z':
+    case 'z':
+        stepperZ.setAcceleration(acceleration);
+        Serial.print("Acceleration for Z axis set to ");
+        Serial.println(acceleration);
+        break;
+
+    default:
+        Serial.println("Invalid axis specified. Use 'X', 'Y', or 'Z'.");
+        break;
+    }
 }
 
 void Control::setupMaterial(FeedBags _feedBags, Foils _foils, FoilsHolder _holder)
