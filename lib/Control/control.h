@@ -27,7 +27,7 @@
 /* Limit Switch */
 #define X_AXIS_LIMIT 13
 #define Y_AXIS_LIMIT 27
-// #define Z_AXIS_LIMIT 23
+#define Z_AXIS_LIMIT 32
 
 #define CW 1
 #define CCW 0
@@ -37,11 +37,11 @@
 #define DRIVER_Y2_ADDRESS 0b10 // MS1 is LOW, MS2 is HIGH
 #define DRIVER_Z_ADDRESS 0b11  // MS1 and MS2 are HIGH, so address is 0b11
 
-// #define MAX_SPEED 100000   // Maximum speed for the steppers
-// #define ACCELERATION 10000 // Acceleration for the steppers
+// #define MAX_SPEED 200000   // Maximum speed for the steppers
+// #define ACCELERATION 100000 // Acceleration for the steppers
 
-#define MAX_SPEED 200000   // Maximum speed for the steppers
-#define ACCELERATION 100000 // Acceleration for the steppers
+#define MAX_SPEED 100000   // Maximum speed for the steppers
+#define ACCELERATION 80000 // Acceleration for the steppers
 
 // TMC2209 UART settings
 #define R_SENSE 0.11f // typical sense resistor
@@ -50,6 +50,7 @@
 #define PULLEY_TEETH 20          // Number of teeth on the pulley
 #define BELL_PITCH 2.0f          // Pitch of the GT2 belt in mm
 #define STEPS_PER_REVOLUTION 200 // Steps per revolution for the stepper motor
+#define LED_SCREW_PITCH 8.0f       // Lead screw pitch in mm/rev for Z axis
 
 typedef struct FeedBags{
     uint8_t column;
@@ -93,7 +94,7 @@ public:
     void Homing();
     void XHoming();
     void YHoming();
-    // void ZHoming();
+    void ZHoming();
     void GoBackToHome();
     void XBackToHome();
     void YBackToHome();
@@ -113,7 +114,10 @@ public:
     void nextColumnBags();
     void nextRowBags();
     void runSequence();
-
+    
+    long distanceMM(int16_t mm);
+    long distanceMM_ZAxis(int16_t mm);
+    long currentMM(AccelStepper &stepper);
 
     static AccelStepper &getStepperX();
     static AccelStepper &getStepperY();
@@ -122,8 +126,7 @@ public:
 
 private:
     void setupMaterial(FeedBags _feedBags, Foils _foils, FoilsHolder _holder); // Setup material properties
-    long distanceMM(uint16_t mm);
-    long currentMM(AccelStepper &stepper);
+   
 
     TMC2209Stepper driverX = TMC2209Stepper(&Serial2, R_SENSE, DRIVER_X_ADDRESS);
     TMC2209Stepper driverY1 = TMC2209Stepper(&Serial2, R_SENSE, DRIVER_Y1_ADDRESS);
@@ -138,10 +141,7 @@ private:
     long HomeX;
     long HomeY;
     long HomeZ;
-    uint8_t stepPerRev = 200;
-    uint8_t microstep = 32;
-    uint8_t pulley = 20;
-    uint8_t bell = 2;
+
 
     // Work area dimensions
     WorkArea workArea;
@@ -150,10 +150,7 @@ private:
     Foils foils;
     FoilsHolder holder;
 
-    uint8_t limitX = X_AXIS_LIMIT;
-    uint8_t limitY = Y_AXIS_LIMIT;
-    // uint8_t limitZ = Z_AXIS_LIMIT; // Not used, but defined for consistency
-
+    
     uint16_t currentBag = 0; // Current bag index
     uint16_t currentFoil = 0; // Current foil index
     bool isLastColumnBags = false; // Flag to check if it's the last column of feed bags

@@ -30,9 +30,9 @@ void Control::setup(FeedBags _feedBags, Foils _foils, FoilsHolder _holder)
 {
     Serial2.begin(115200, SERIAL_8N1, RX2, TX2); // Initialize Serial2 for TMC2209
     setupMaterial(_feedBags, _foils, _holder);   // Setup material properties
-    pinMode(limitX, INPUT_PULLUP);               // Set limit switch pins as input with pull-up
-    pinMode(limitY, INPUT_PULLUP);
-    // pinMode(limitZ, INPUT_PULLUP); // Not used, but defined for consistency
+    pinMode(X_AXIS_LIMIT, INPUT_PULLUP);               // Set limit switch pins as input with pull-up
+    pinMode(Y_AXIS_LIMIT, INPUT_PULLUP);
+    pinMode(Z_AXIS_LIMIT, INPUT_PULLUP); // Not used, but defined for consistency
 
     // Setup Driver
     driverX.begin();                    // Initialize TMC2209 driver for X axis
@@ -46,10 +46,10 @@ void Control::setup(FeedBags _feedBags, Foils _foils, FoilsHolder _holder)
     driverY2.begin(); // Initialize TMC2209 driver for Y2 axis
     driverY2.rms_current(450);
     driverY2.microsteps(MICRO_STEPPING);
-    driverY2.pwm_autoscale(true);
+
 
     driverZ.begin(); // Initialize TMC2209 driver for Z axis
-    driverZ.rms_current(450);
+    driverZ.rms_current(1300); // Setting 80% of current rate limit of stepper motor in mA
     driverZ.microsteps(MICRO_STEPPING);
 
     // Check UART connection for each driver
@@ -147,11 +147,25 @@ void Control::checkConnection(TMC2209Stepper &driver, const char *axisName)
     }
 }
 
-long Control::distanceMM(uint16_t mm)
+long Control::distanceMM(int16_t mm)
 {
     // 200 steps per revolution, 32 microsteps, 20 teeth pulley, 2 mm pitch
-    // long steps = (STEPS_PER_REVOLUTION * MICRO_STEPPING) / (PULLEY_TEETH * BELL_PITCH);
-    long steps = (stepPerRev * microstep) / (pulley * bell);
+    long steps = (STEPS_PER_REVOLUTION * MICRO_STEPPING) / (PULLEY_TEETH * BELL_PITCH);
+
+    // Convert mm to steps
+    long stepsNeeded = mm * steps;
+
+    return stepsNeeded;
+}
+
+long Control::distanceMM_ZAxis(int16_t mm)
+{
+    // 200 steps per revolution, 32 microsteps, 20 teeth pulley, 8 mm pitch
+    long steps = (STEPS_PER_REVOLUTION * MICRO_STEPPING) / (LED_SCREW_PITCH);
+
+    if(mm > 50) mm = 50; // Limit maximum Z travel to 55mm to avoid collision with the work area
+    if(mm < 0) mm = 0;   // Limit minimum Z travel to 0mm
+
     // Convert mm to steps
     long stepsNeeded = mm * steps;
 
@@ -170,13 +184,13 @@ void Control::Homing()
     // Perform homing for all axes
     XHoming();
     YHoming();
-    // ZHoming();
+    ZHoming();
 }
 
 void Control::XHoming()
 {
     Serial.println("Homing X axis...");
-    if (digitalRead(limitX) == LOW)
+    if (digitalRead(X_AXIS_LIMIT) == LOW)
     {
         Serial.println("X axis limit switch is already triggered. Skipping homing.");
         stepperX.setCurrentPosition(0); // Set current position to 0 if already at home
@@ -196,7 +210,7 @@ void Control::XHoming()
         // Set a target far in the negative direction
         stepperX.moveTo(-999999);
 
-        while (digitalRead(limitX) == HIGH)
+        while (digitalRead(X_AXIS_LIMIT) == HIGH)
         {
             stepperX.run();
         }
@@ -216,7 +230,7 @@ void Control::XHoming()
         stepperX.setAcceleration(250.0);
         stepperX.moveTo(-999999); // Move back towards the switch
 
-        while (digitalRead(limitX) == HIGH)
+        while (digitalRead(X_AXIS_LIMIT) == HIGH)
         {
             stepperX.run();
         }
@@ -237,7 +251,7 @@ void Control::XHoming()
 void Control::YHoming()
 {
     Serial.println("Homing Y axis...");
-    if (digitalRead(limitY) == LOW)
+    if (digitalRead(Y_AXIS_LIMIT) == LOW)
     {
         Serial.println("Y axis limit switch is already triggered. Skipping homing.");
         stepperY.setCurrentPosition(0); // Set current position to 0 if already at home
@@ -257,7 +271,7 @@ void Control::YHoming()
         // Set a target far in the negative direction
         stepperY.moveTo(-999999);
 
-        while (digitalRead(limitY) == HIGH)
+        while (digitalRead(Y_AXIS_LIMIT) == HIGH)
         {
             stepperY.run();
         }
@@ -277,7 +291,7 @@ void Control::YHoming()
         stepperY.setAcceleration(250.0);
         stepperY.moveTo(-999999); // Move back towards the switch
 
-        while (digitalRead(limitY) == HIGH)
+        while (digitalRead(Y_AXIS_LIMIT) == HIGH)
         {
             stepperY.run();
         }
@@ -295,60 +309,65 @@ void Control::YHoming()
     }
 }
 
-// void Control::ZHoming() {
-//     Serial.println("Homing Z axis...");
-//     if(digitalRead(limitZ) == LOW) {
-//         Serial.println("Z axis limit switch is already triggered. Skipping homing.");
-//         stepperZ.setCurrentPosition(0); // Set current position to 0 if already at home
-//         HomeZ = 0; // Store home position
-//         return;
-//     }
-//     else{
-//         // --- Save original settings ---
-//         float originalMaxSpeed = stepperZ.maxSpeed();
-//         float originalAcceleration = stepperZ.acceleration();
+void Control::ZHoming() {
+    Serial.println("Homing Z axis...");
+    if (digitalRead(Z_AXIS_LIMIT) == LOW)
+    {
+        Serial.println("Z axis limit switch is already triggered. Skipping homing.");
+        stepperX.setCurrentPosition(0); // Set current position to 0 if already at home
+        HomeZ = 0;                      // Store home position
+        return;
+    }
+    else
+    {
+        // --- Save original settings ---
+        float originalMaxSpeed = stepperX.maxSpeed();
+        float originalAcceleration = stepperX.acceleration();
 
-//         // --- Pass 1: Fast move to the limit switch ---
-//         stepperZ.setMaxSpeed(2000.0);      // Use a moderate speed for the first pass
-//         stepperZ.setAcceleration(1000.0);
+        // --- Pass 1: Fast move to the limit switch ---
+        stepperZ.setMaxSpeed(2000.0); // Use a moderate speed for the first pass
+        stepperZ.setAcceleration(1000.0);
 
-//         // Set a target far in the negative direction
-//         stepperZ.moveTo(-999999);
+        // Set a target far in the negative direction
+        stepperZ.moveTo(-999999);
 
-//         while (digitalRead(limitZ) == HIGH) {
-//             stepperZ.run();
-//         }
+        while (digitalRead(Z_AXIS_LIMIT) == HIGH)
+        {
+            stepperZ.run();
+        }
 
-//         // Stop motor and reset position temporarily
-//         stepperZ.stop();
-//         stepperZ.setCurrentPosition(0);
-//         Serial.println("First pass complete.");
+        // Stop motor and reset position temporarily
+        stepperZ.stop();
+        stepperZ.setCurrentPosition(0);
+        Serial.println("First pass complete.");
 
-//         // --- Back off the switch ---
-//         stepperZ.moveTo(stepsToMM(10)); // Move 5mm away from the switch
-//         stepperZ.runToPosition();      // Blocking call to ensure it finishes
-//         Serial.println("Backed off switch.");
+        // --- Back off the switch ---
+        stepperZ.moveTo(distanceMM(10)); // Move 5mm away from the switch
+        stepperZ.runToPosition();        // Blocking call to ensure it finishes
+        Serial.println("Backed off switch.");
 
-//         // --- Pass 2: Slow move to the limit switch for accuracy ---
-//         stepperZ.setMaxSpeed(500.0); // Very slow for precision
-//         stepperZ.setAcceleration(250.0);
-//         stepperZ.moveTo(-999999); // Move back towards the switch
+        // --- Pass 2: Slow move to the limit switch for accuracy ---
+        stepperZ.setMaxSpeed(500.0); // Very slow for precision
+        stepperZ.setAcceleration(250.0);
+        stepperZ.moveTo(-999999); // Move back towards the switch
 
-//         while (digitalRead(limitZ) == HIGH) {
-//             stepperZ.run();
-//         }
-//         stepperZ.stop();
+        while (digitalRead(Z_AXIS_LIMIT) == HIGH)
+        {
+            stepperZ.run();
+        }
+        stepperZ.stop();
 
-//         // This is the true home position. Set it to 0.
-//         stepperZ.setCurrentPosition(0);
-//         HomeZ = stepperZ.currentPosition(); // Store the home position for Z axis
-//         Serial.println("Homing Z complete. Position set to 0.");
+        // This is the true home position. Set it to 0.
+        stepperZ.setCurrentPosition(0);
+        HomeZ = stepperZ.currentPosition(); // Store the home position for X axis
+        Serial.println("Homing X complete. Position set to 0.");
+        Serial.printf("Home X: %ld\n", HomeX);
 
-//         // --- Restore original settings ---
-//         stepperZ.setMaxSpeed(originalMaxSpeed);
-//         stepperZ.setAcceleration(originalAcceleration);
-//     }
-// }
+        // --- Restore original settings ---
+        stepperZ.setMaxSpeed(originalMaxSpeed);
+        stepperZ.setAcceleration(originalAcceleration);
+    }
+}
 
 void Control::GoBackToHome()
 {
@@ -457,6 +476,11 @@ void Control::goToFoils()
         // Serial.println("...");
        
         /* Pick the foils here */
+        stepperZ.moveTo(distanceMM_ZAxis(50)); // Move Z axis up to avoid collision
+        stepperZ.runToPosition();              // Blocking call to ensure it finishes
+        stepperZ.moveTo(distanceMM_ZAxis(0));  // Move Z axis down to pick foil
+        stepperZ.runToPosition();              // Blocking call to ensure it finishes
+        Serial.println("Picked foil.");
         
         // /* back to current Bag */
         if (currentBag < 1)
@@ -471,14 +495,21 @@ void Control::goToFoils()
             }
             if (currentFoil < foils.qty)
             {
-                /* Place foil into FeedBag here */
-                 stepperX.move(distanceMM(2)); // Move to the next foil position
+                
+                stepperX.move(distanceMM(2)); // Move to the next foil position
                 stepperY.move(distanceMM(2)); // Adjust Y position based on column
                 while (stepperX.distanceToGo() != 0 || stepperY.distanceToGo() != 0)
                 {
                     stepperX.run();
                     stepperY.run();
                 }
+                
+                /* Place foil into FeedBag here */
+                stepperZ.moveTo(distanceMM_ZAxis(50)); // Move Z axis up to avoid collision
+                stepperZ.runToPosition();              // Blocking call to ensure it finishes
+                stepperZ.moveTo(distanceMM_ZAxis(0));  // Move Z axis down to pick foil
+                stepperZ.runToPosition();              // Blocking call to ensure it finishes
+                Serial.println("Placed foil.");
 
                 currentFoil++; // Increment the foil index
             }
@@ -508,8 +539,7 @@ void Control::goToFoils()
             // Serial.println("Moving to next foil...");
             if (currentFoil < foils.qty)
             {
-                /* Place the Foils into FeedBags here */
-
+                
                 // float angleInRadians = 90 * PI / 180.0;
                 // float targetX_mm = currentMM(stepperX) + foils.radius * cos(angleInRadians);
                 // float targetY_mm = currentMM(stepperY) + foils.radius * sin(angleInRadians);
@@ -521,6 +551,14 @@ void Control::goToFoils()
                     stepperY.run();
                 } // Blocking call to ensure it finishes
                 Serial.println("Reached next foil.");
+
+                /* Place the Foils into FeedBags here */
+                 stepperZ.moveTo(distanceMM_ZAxis(50)); // Move Z axis up to avoid collision
+                stepperZ.runToPosition();              // Blocking call to ensure it finishes
+                stepperZ.moveTo(distanceMM_ZAxis(0));  // Move Z axis down to pick foil
+                stepperZ.runToPosition();              // Blocking call to ensure it finishes
+
+
                 currentFoil++; // Increment the foil index
             }
             else
