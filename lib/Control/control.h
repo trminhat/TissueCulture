@@ -5,6 +5,7 @@
 #include <AccelStepper.h>
 #include <math.h>
 #include <TMCStepper.h>
+#include <ESP32Servo.h>
 
 /* NOTICE: DISCONNECT GPIO 0/2/5/12/15/RST FROM ENA PIN. IT WLL MAKE ESP32 CANNOT WORK AFTER FIRST TIME UPLOAD
 
@@ -20,14 +21,23 @@
 #define X_AXIS_STEP 26
 #define Y_AXIS_STEP 25
 #define Z_AXIS_STEP 23
-#define X_AXIS_DIR 18
-#define Y_AXIS_DIR 19
-#define Z_AXIS_DIR 14
+#define X_AXIS_DIR  18
+#define Y_AXIS_DIR  19
+#define Z_AXIS_DIR  14
+#define GRIPPER_PIN 33
 
 /* Limit Switch */
-#define X_AXIS_LIMIT 13
-#define Y_AXIS_LIMIT 27
-#define Z_AXIS_LIMIT 32
+// #define X_AXIS_LIMIT 13
+// #define Y_AXIS_LIMIT 27
+// #define Z_AXIS_LIMIT 32
+
+#define X_AXIS_LIMIT 34
+#define Y_AXIS_LIMIT 35
+#define Z_AXIS_LIMIT 36
+
+#define GRIPPER_CLOSE_0DEG 0
+#define GRIPPER_OPEN_90DEG 90
+#define GRIPPER_OPEN_180DEG 180
 
 #define CW 1
 #define CCW 0
@@ -37,9 +47,11 @@
 #define DRIVER_Y2_ADDRESS 0b10 // MS1 is LOW, MS2 is HIGH
 #define DRIVER_Z_ADDRESS 0b11  // MS1 and MS2 are HIGH, so address is 0b11
 
+#define MAX_SPEED_50KHZ 50000     // Maximum speed for the steppers
 #define MAX_SPEED_100KHZ 100000   // Maximum speed for the steppers
 #define MAX_SPEED_200KHZ 200000   // Maximum speed for the steppers
 
+#define ACCELERATION_25KHZ 25000 // Acceleration for the steppers
 #define ACCELERATION_50KHZ 50000 // Acceleration for the steppers
 #define ACCELERATION_80KHZ 80000 // Acceleration for the steppers
 #define ACCELERATION_100KHZ 100000 // Acceleration for the steppers
@@ -89,6 +101,7 @@ public:
     Control(uint16_t workLength, uint16_t workWidth, uint16_t workHeight);
     // Access to shared stepper instances
     void setup(FeedBags _feedBags, Foils _foils, FoilsHolder _holder); // Setup the control system with feed bags and foils
+    void initGripper(); // Setup the gripper servo
     void setSpreadCycle();
     void setSpreadCycle(const char axis);
     void setStealthChop();
@@ -144,6 +157,9 @@ private:
     static AccelStepper stepperX;
     static AccelStepper stepperY;
     static AccelStepper stepperZ;
+
+    Servo gripperServo; // Servo for gripper mechanism
+
 
     long HomeX;
     long HomeY;

@@ -29,10 +29,13 @@ Control::Control(uint16_t workLength, uint16_t workWidth, uint16_t workHeight)
 void Control::setup(FeedBags _feedBags, Foils _foils, FoilsHolder _holder)
 {
     Serial2.begin(115200, SERIAL_8N1, RX2, TX2); // Initialize Serial2 for TMC2209
+    
+    initGripper(); // Setup the gripper servo
+
     setupMaterial(_feedBags, _foils, _holder);   // Setup material properties
-    pinMode(X_AXIS_LIMIT, INPUT_PULLUP);               // Set limit switch pins as input with pull-up
-    pinMode(Y_AXIS_LIMIT, INPUT_PULLUP);
-    pinMode(Z_AXIS_LIMIT, INPUT_PULLUP); // Not used, but defined for consistency
+    pinMode(X_AXIS_LIMIT, INPUT); // Already pull-up in hardware
+    pinMode(Y_AXIS_LIMIT, INPUT); // Already pull-up in hardware
+    pinMode(Z_AXIS_LIMIT, INPUT); // Already pull-up in hardware
 
     // Setup Driver
     driverX.begin();                    // Initialize TMC2209 driver for X axis
@@ -57,6 +60,18 @@ void Control::setup(FeedBags _feedBags, Foils _foils, FoilsHolder _holder)
     checkConnection(driverY1, "Y1 Axis");
     checkConnection(driverY2, "Y2 Axis");
     checkConnection(driverZ, "Z Axis");
+
+    gripperServo.write(GRIPPER_OPEN_90DEG); // Open gripper at 90 degrees
+}
+
+void Control::initGripper(){
+
+    ESP32PWM::allocateTimer(0);
+	ESP32PWM::allocateTimer(1);
+	ESP32PWM::allocateTimer(2);
+	ESP32PWM::allocateTimer(3);
+	gripperServo.setPeriodHertz(50);    // standard 50 hz servo
+	gripperServo.attach(GRIPPER_PIN, 1000, 2000);
 }
 void Control::setSpreadCycle()
 {
@@ -307,9 +322,9 @@ long Control::currentMM(AccelStepper &stepper)
 void Control::Homing()
 {
     // Perform homing for all axes
-    XHoming();
-    YHoming();
     ZHoming();
+    YHoming();
+    XHoming();
 }
 
 void Control::XHoming()
@@ -339,6 +354,7 @@ void Control::XHoming()
         {
             stepperX.run();
         }
+        delay(50); // Debounce delay
 
         // Stop motor and reset position temporarily
         stepperX.stop();
@@ -359,6 +375,8 @@ void Control::XHoming()
         {
             stepperX.run();
         }
+        delay(50); // Debounce delay
+
         stepperX.stop();
 
         // This is the true home position. Set it to 0.
@@ -400,6 +418,7 @@ void Control::YHoming()
         {
             stepperY.run();
         }
+        delay(50); // Debounce delay
 
         // Stop motor and reset position temporarily
         stepperY.stop();
@@ -420,6 +439,8 @@ void Control::YHoming()
         {
             stepperY.run();
         }
+        delay(50); // Debounce delay
+
         stepperY.stop();
 
         // This is the true home position. Set it to 0.
@@ -460,6 +481,7 @@ void Control::ZHoming() {
         {
             stepperZ.run();
         }
+        delay(50); // Debounce delay
 
         // Stop motor and reset position temporarily
         stepperZ.stop();
@@ -480,6 +502,8 @@ void Control::ZHoming() {
         {
             stepperZ.run();
         }
+        delay(50); // Debounce delay
+
         stepperZ.stop();
 
         // This is the true home position. Set it to 0.
@@ -599,10 +623,11 @@ void Control::goToFoils()
         // Serial.print(" of ");
         // Serial.print(foils.qty);
         // Serial.println("...");
-       
-        /* Pick the foils here */
+         /* Pick the foils here */
         stepperZ.moveTo(distanceMM_ZAxis(50)); // Move Z axis up to avoid collision
         stepperZ.runToPosition();              // Blocking call to ensure it finishes
+        gripperServo.write(GRIPPER_CLOSE_0DEG); // Close gripper to pick foil
+        delay(1000); // Wait for gripper to close
         stepperZ.moveTo(distanceMM_ZAxis(0));  // Move Z axis down to pick foil
         stepperZ.runToPosition();              // Blocking call to ensure it finishes
         Serial.println("Picked foil.");
@@ -632,8 +657,11 @@ void Control::goToFoils()
                 /* Place foil into FeedBag here */
                 stepperZ.moveTo(distanceMM_ZAxis(50)); // Move Z axis up to avoid collision
                 stepperZ.runToPosition();              // Blocking call to ensure it finishes
+                gripperServo.write(GRIPPER_OPEN_90DEG); // Open gripper to release foil
+                delay(1000); // Wait for gripper to close
                 stepperZ.moveTo(distanceMM_ZAxis(0));  // Move Z axis down to pick foil
                 stepperZ.runToPosition();              // Blocking call to ensure it finishes
+
                 Serial.println("Placed foil.");
 
                 currentFoil++; // Increment the foil index
@@ -678,8 +706,10 @@ void Control::goToFoils()
                 Serial.println("Reached next foil.");
 
                 /* Place the Foils into FeedBags here */
-                 stepperZ.moveTo(distanceMM_ZAxis(50)); // Move Z axis up to avoid collision
+                stepperZ.moveTo(distanceMM_ZAxis(50)); // Move Z axis up to avoid collision
                 stepperZ.runToPosition();              // Blocking call to ensure it finishes
+                gripperServo.write(GRIPPER_OPEN_90DEG); // Open gripper to release foil
+                delay(1000); // Wait for gripper to close
                 stepperZ.moveTo(distanceMM_ZAxis(0));  // Move Z axis down to pick foil
                 stepperZ.runToPosition();              // Blocking call to ensure it finishes
 
