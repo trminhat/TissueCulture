@@ -65,14 +65,14 @@
 #define STEPS_PER_REVOLUTION 200 // Steps per revolution for the stepper motor
 #define LED_SCREW_PITCH 8.0f       // Lead screw pitch in mm/rev for Z axis
 
-typedef struct FeedBags{
+typedef struct NutriBags{
     uint8_t column;
     uint8_t row; // Number of rows of feed bags
     uint16_t radius; // Radius of the feed bag in mm
     uint16_t height; // Height of the feed bag in mm
     uint16_t clearanceX; // Clearance of X direction for the feed bags in mm
     uint16_t clearanceY; // Clearance of Y direction for the feed bags in mm
-} FeedBags;
+} NutriBags;
 
 typedef struct Foils{
     uint16_t qty;
@@ -100,7 +100,7 @@ class Control
 public:
     Control(uint16_t workLength, uint16_t workWidth, uint16_t workHeight);
     // Access to shared stepper instances
-    void setup(FeedBags _feedBags, Foils _foils, FoilsHolder _holder); // Setup the control system with feed bags and foils
+    void setup(NutriBags _nutriBag, Foils _foils, FoilsHolder _holder); // Setup the control system with feed bags and foils
     void initGripper(); // Setup the gripper servo
     void setSpreadCycle();
     void setSpreadCycle(const char axis);
@@ -128,7 +128,7 @@ public:
     uint16_t getCurrentFoils() const { return currentFoil; }
 
     /* Sequency Functions */
-    void goToFeedBags();
+    void goToNutriBags();
     void goToFoils();
     void goToHolder();
     void nextColumnBags();
@@ -145,7 +145,7 @@ public:
     ~Control() = default;
 
 private:
-    void setupMaterial(FeedBags _feedBags, Foils _foils, FoilsHolder _holder); // Setup material properties
+    void setupMaterial(NutriBags _nutriBag, Foils _foils, FoilsHolder _holder); // Setup material properties
    
 
     TMC2209Stepper driverX = TMC2209Stepper(&Serial2, R_SENSE, DRIVER_X_ADDRESS);
@@ -169,7 +169,7 @@ private:
     // Work area dimensions
     WorkArea workArea;
     // Feed bags and foils
-    FeedBags feedBags;
+    NutriBags nutriBags;
     Foils foils;
     FoilsHolder holder;
 

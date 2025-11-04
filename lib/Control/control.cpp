@@ -12,12 +12,12 @@ Control::Control(uint16_t workLength, uint16_t workWidth, uint16_t workHeight)
     workArea.width = workWidth;
     workArea.height = workHeight;
 
-    feedBags.column = 0;     // Initialize feed bags quantity
-    feedBags.row = 0;        // Initialize feed bags quantity
-    feedBags.radius = 0;     // Initialize feed bag radius
-    feedBags.height = 0;     // Initialize feed bag height
-    feedBags.clearanceX = 0; // Initialize clearance in X direction
-    feedBags.clearanceY = 0; // Initialize clearance in Y direction
+    nutriBags.column = 0;     // Initialize feed bags quantity
+    nutriBags.row = 0;        // Initialize feed bags quantity
+    nutriBags.radius = 0;     // Initialize feed bag radius
+    nutriBags.height = 0;     // Initialize feed bag height
+    nutriBags.clearanceX = 0; // Initialize clearance in X direction
+    nutriBags.clearanceY = 0; // Initialize clearance in Y direction
 
     foils.qty = 0;        // Initialize foils quantity
     foils.radius = 0;     // Initialize foil radius
@@ -26,13 +26,13 @@ Control::Control(uint16_t workLength, uint16_t workWidth, uint16_t workHeight)
     foils.clearanceY = 0; // Initialize clearance in Y direction
 }
 
-void Control::setup(FeedBags _feedBags, Foils _foils, FoilsHolder _holder)
+void Control::setup(NutriBags _nutriBags, Foils _foils, FoilsHolder _holder)
 {
     Serial2.begin(115200, SERIAL_8N1, RX2, TX2); // Initialize Serial2 for TMC2209
     
     initGripper(); // Setup the gripper servo
 
-    setupMaterial(_feedBags, _foils, _holder);   // Setup material properties
+    setupMaterial(_nutriBags, _foils, _holder);   // Setup material properties
     pinMode(X_AXIS_LIMIT, INPUT); // Already pull-up in hardware
     pinMode(Y_AXIS_LIMIT, INPUT); // Already pull-up in hardware
     pinMode(Z_AXIS_LIMIT, INPUT); // Already pull-up in hardware
@@ -225,23 +225,23 @@ void Control::setAcceleration(const char axis, float acceleration)
     }
 }
 
-void Control::setupMaterial(FeedBags _feedBags, Foils _foils, FoilsHolder _holder)
+void Control::setupMaterial(NutriBags _nutriBags, Foils _foils, FoilsHolder _holder)
 {
     // Setup material properties
-    this->feedBags = _feedBags; // Store feed bags information
+    this->nutriBags = _nutriBags; // Store feed bags information
     this->foils = _foils;       // Store foils information
     this->holder = _holder;     // Store foil holder information
 
     Serial.print("Feed Bags: ");
-    Serial.print(feedBags.column * feedBags.row); // Calculate total quantity of feed bags
+    Serial.print(nutriBags.column * nutriBags.row); // Calculate total quantity of feed bags
     Serial.print("pcs, Radius: ");
-    Serial.print(feedBags.radius);
+    Serial.print(nutriBags.radius);
     Serial.print("mm, Height: ");
-    Serial.println(feedBags.height);
+    Serial.println(nutriBags.height);
     Serial.print("Clearance of : ");
-    Serial.println(feedBags.clearanceX);
+    Serial.println(nutriBags.clearanceX);
     Serial.print("Clearance of Y: ");
-    Serial.println(feedBags.clearanceY);
+    Serial.println(nutriBags.clearanceY);
 
     Serial.print("Foils: ");
     Serial.print(foils.qty); // Calculate total quantity of foils
@@ -548,7 +548,7 @@ void Control::ZBackToHome()
     Serial.println("Z axis back to home position.");
 }
 
-void Control::goToFeedBags()
+void Control::goToNutriBags()
 {
     uint16_t borderX = 100;
     uint16_t borderY = 100;
@@ -556,7 +556,7 @@ void Control::goToFeedBags()
     // Serial.print("Moving to feed bag ");
     Serial.print(currentBag);
     Serial.print(" of ");
-    Serial.print(feedBags.column * feedBags.row);
+    Serial.print(nutriBags.column * nutriBags.row);
     Serial.println("...");
     
     Serial.printf("Current Position X: %ld mm\t", currentPositionX);
@@ -565,8 +565,8 @@ void Control::goToFeedBags()
     if (currentBag < 1)
     {
         // Serial.println("Moving to first feed bag...");
-        stepperX.moveTo(distanceMM(borderX + feedBags.radius));     // Move to the first feed bag position
-        stepperY.moveTo(distanceMM(borderY + feedBags.height / 2)); // Center Y position for the first bag
+        stepperX.moveTo(distanceMM(borderX + nutriBags.radius));     // Move to the first feed bag position
+        stepperY.moveTo(distanceMM(borderY + nutriBags.height / 2)); // Center Y position for the first bag
         while (stepperX.distanceToGo() != 0 || stepperY.distanceToGo() != 0)
         {
             stepperX.run();
@@ -705,7 +705,7 @@ void Control::goToFoils()
                 } // Blocking call to ensure it finishes
                 Serial.println("Reached next foil.");
 
-                /* Place the Foils into FeedBags here */
+                /* Place the Foils into NutriBags here */
                 stepperZ.moveTo(distanceMM_ZAxis(50)); // Move Z axis up to avoid collision
                 stepperZ.runToPosition();              // Blocking call to ensure it finishes
                 gripperServo.write(GRIPPER_OPEN_90DEG); // Open gripper to release foil
@@ -749,9 +749,9 @@ void Control::goToHolder()
 void Control::nextColumnBags()
 {
     /* Column - 1: without first bags */
-    if (currentMM(stepperX) < ((feedBags.column - 1) * feedBags.clearanceX + firstBagPositionX))
+    if (currentMM(stepperX) < ((nutriBags.column - 1) * nutriBags.clearanceX + firstBagPositionX))
     {
-        stepperX.move(distanceMM(feedBags.clearanceX)); // Move to the next column position
+        stepperX.move(distanceMM(nutriBags.clearanceX)); // Move to the next column position
         stepperX.runToPosition();                       // Blocking call to ensure it finishes
         currentPositionX = currentMM(stepperX); // Update current bag position in X
         isLastColumnBags = false;               // Reset flag as we are not at the last column yet
@@ -766,9 +766,9 @@ void Control::nextColumnBags()
 void Control::nextRowBags()
 {
     /* Row - 1: without first bags */
-    if (currentMM(stepperY) < ((feedBags.row - 1) * feedBags.clearanceY + firstBagPositionY))
+    if (currentMM(stepperY) < ((nutriBags.row - 1) * nutriBags.clearanceY + firstBagPositionY))
     {
-        stepperY.move(distanceMM(feedBags.clearanceY)); // Move to the next row position
+        stepperY.move(distanceMM(nutriBags.clearanceY)); // Move to the next row position
         stepperY.runToPosition();                       // Blocking call to ensure it finishes
         currentPositionY = currentMM(stepperY);         // Update current bag position in X
         isLastRowBags = false;                          // Reset flag as we are not at the last row yet
