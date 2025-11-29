@@ -27,9 +27,7 @@ Control::Control(uint16_t workLength, uint16_t workWidth, uint16_t workHeight)
 }
 
 void Control::setup(NutriBags _nutriBags, Foils _foils, FoilsHolder _holder)
-{
-    Serial2.begin(115200, SERIAL_8N1, RX2, TX2); // Initialize Serial2 for TMC2209
-    
+{    
     initGripper(); // Setup the gripper servo
 
     setupMaterial(_nutriBags, _foils, _holder);   // Setup material properties
@@ -362,7 +360,7 @@ void Control::XHoming()
         Serial.println("First pass complete.");
 
         // --- Back off the switch ---
-        stepperX.moveTo(distanceMM(10)); // Move 5mm away from the switch
+        stepperX.moveTo(distanceMM(10)); // Move 10mm away from the switch
         stepperX.runToPosition();        // Blocking call to ensure it finishes
         Serial.println("Backed off switch.");
 
