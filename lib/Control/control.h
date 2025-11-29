@@ -39,6 +39,9 @@
 #define GRIPPER_OPEN_90DEG 90
 #define GRIPPER_OPEN_180DEG 180
 
+#define UART_JETSON_RX1 27
+#define UART_JETSON_TX1 32
+
 #define CW 1
 #define CCW 0
 
@@ -124,8 +127,12 @@ public:
     long getHomeY() const { return HomeY; }
     long getHomeZ() const { return HomeZ; }
     
-    uint16_t getCurrentBags()  const { return currentBag;  }
-    uint16_t getCurrentFoils() const { return currentFoil; }
+    uint16_t getCurrentBags()   { return currentBag;          }
+    uint16_t getCurrentFoils()  { return currentFoil;         }
+    long getCurrentPositionX_mm()  { return currentMM(stepperX); }
+    long getCurrentPositionY_mm()  { return currentMM(stepperY); }
+    long getCurrentPositionZ_mm()  { return currentMM(stepperZ); }
+    
 
     /* Sequency Functions */
     void goToNutriBags();
