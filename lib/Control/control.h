@@ -66,7 +66,7 @@
 #define PULLEY_TEETH 20          // Number of teeth on the pulley
 #define BELL_PITCH 2.0f          // Pitch of the GT2 belt in mm
 #define STEPS_PER_REVOLUTION 200 // Steps per revolution for the stepper motor
-#define LED_SCREW_PITCH 8.0f       // Lead screw pitch in mm/rev for Z axis
+#define LEAD_SCREW_PITCH 8.0f       // Lead screw pitch in mm/rev for Z axis
 
 typedef struct NutriBags{
     uint8_t column;
@@ -78,7 +78,7 @@ typedef struct NutriBags{
 } NutriBags;
 
 typedef struct Foils{
-    uint16_t qty;
+    uint16_t qty;       // Quantity of foils per package
     uint16_t radius; // Radius of the feed bag in mm
     uint16_t height; // Height of the foil in mm
     uint16_t clearanceX; // Clearance of X directoion for the feed bags in mm
@@ -127,12 +127,12 @@ public:
     long getHomeY() const { return HomeY; }
     long getHomeZ() const { return HomeZ; }
     
-    uint16_t getCurrentBags()   { return currentBag;          }
-    uint16_t getCurrentFoils()  { return currentFoil;         }
-    long getCurrentPositionX_mm()  { return currentMM(stepperX); }
-    long getCurrentPositionY_mm()  { return currentMM(stepperY); }
-    long getCurrentPositionZ_mm()  { return currentMM(stepperZ); }
-    
+    uint16_t getCurrentBags()      { return currentBag;          }
+    uint16_t getCurrentFoils()     { return currentFoil;         }
+    long getCurrentPositionX_mm()  { return currentMM('X'); }
+    long getCurrentPositionY_mm()  { return currentMM('Y'); }
+    long getCurrentPositionZ_mm()  { return currentMM('Z'); }
+    int getCurrentGripper()        { return gripperServo.read(); }
 
     /* Sequency Functions */
     void goToNutriBags();
@@ -144,7 +144,7 @@ public:
     
     long distanceMM(int16_t mm);
     long distanceMM_ZAxis(int16_t mm);
-    long currentMM(AccelStepper &stepper);
+    long currentMM(char axis);
 
     static AccelStepper &getStepperX();
     static AccelStepper &getStepperY();

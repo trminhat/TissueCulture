@@ -299,7 +299,7 @@ long Control::distanceMM(int16_t mm)
 long Control::distanceMM_ZAxis(int16_t mm)
 {
     // 200 steps per revolution, 32 microsteps, 20 teeth pulley, 8 mm pitch
-    long steps = (STEPS_PER_REVOLUTION * MICRO_STEPPING) / (LED_SCREW_PITCH);
+    long steps = (STEPS_PER_REVOLUTION * MICRO_STEPPING) / (LEAD_SCREW_PITCH);
 
     if(mm > 50) mm = 50; // Limit maximum Z travel to 55mm to avoid collision with the work area
     if(mm < 0) mm = 0;   // Limit minimum Z travel to 0mm
@@ -310,10 +310,37 @@ long Control::distanceMM_ZAxis(int16_t mm)
     return stepsNeeded;
 }
 
-long Control::currentMM(AccelStepper &stepper)
+long Control::currentMM(char axis)
 {
-    long currentPositionSteps = stepper.currentPosition();                                                                 // Get current position in steps
-    long currentPositionMM = currentPositionSteps * (PULLEY_TEETH * BELL_PITCH) / (STEPS_PER_REVOLUTION * MICRO_STEPPING); // Convert steps to mm
+    long currentPositionSteps;
+    long currentPositionMM;
+    switch (axis)
+    {
+    case 'X':
+    case 'x':
+        currentPositionSteps = stepperX.currentPosition();                                                                 // Get current position in steps
+        currentPositionMM = currentPositionSteps * (PULLEY_TEETH * BELL_PITCH) / (STEPS_PER_REVOLUTION * MICRO_STEPPING); // Convert steps to mm
+        break;
+    case 'Y':
+    case 'y':
+        currentPositionSteps = stepperY.currentPosition();                                                                 // Get current position in steps
+        currentPositionMM = currentPositionSteps * (PULLEY_TEETH * BELL_PITCH) / (STEPS_PER_REVOLUTION * MICRO_STEPPING); // Convert steps to
+        break;
+    case 'Z':
+    case 'z':
+        currentPositionSteps = stepperZ.currentPosition();                                                                 // Get current position in steps
+        currentPositionMM = currentPositionSteps * (LEAD_SCREW_PITCH) / (STEPS_PER_REVOLUTION * MICRO_STEPPING); // Convert steps to mm for Z
+        break;
+    default:
+        Serial.println("Invalid axis specified. Use 'X', 'Y', or 'Z'.");
+        return -1;
+    }
+
+    // long currentPositionSteps = stepper.currentPosition();                                                                 // Get current position in steps
+    // long currentPositionMM = currentPositionSteps * (PULLEY_TEETH * BELL_PITCH) / (STEPS_PER_REVOLUTION * MICRO_STEPPING); // Convert steps to mm
+    // if(stepper == stepperZ) {
+    //     currentPositionMM = currentPositionSteps * (LEAD_SCREW_PITCH) / (STEPS_PER_REVOLUTION * MICRO_STEPPING); // Convert steps to mm for Z axis
+    // }
     return currentPositionMM;
 }
 
@@ -342,8 +369,8 @@ void Control::XHoming()
         float originalAcceleration = stepperX.acceleration();
 
         // --- Pass 1: Fast move to the limit switch ---
-        stepperX.setMaxSpeed(2000.0); // Use a moderate speed for the first pass
-        stepperX.setAcceleration(1000.0);
+        stepperX.setMaxSpeed(20000.0); // Use a moderate speed for the first pass
+        stepperX.setAcceleration(10000.0);
 
         // Set a target far in the negative direction
         stepperX.moveTo(-999999);
@@ -406,7 +433,7 @@ void Control::YHoming()
         float originalAcceleration = stepperY.acceleration();
 
         // --- Pass 1: Fast move to the limit switch ---
-        stepperY.setMaxSpeed(2000.0); // Use a moderate speed for the first pass
+        stepperY.setMaxSpeed(20000.0); // Use a moderate speed for the first pass
         stepperY.setAcceleration(1000.0);
 
         // Set a target far in the negative direction
@@ -469,8 +496,8 @@ void Control::ZHoming() {
         float originalAcceleration = stepperX.acceleration();
 
         // --- Pass 1: Fast move to the limit switch ---
-        stepperZ.setMaxSpeed(2000.0); // Use a moderate speed for the first pass
-        stepperZ.setAcceleration(1000.0);
+        stepperZ.setMaxSpeed(20000.0); // Use a moderate speed for the first pass
+        stepperZ.setAcceleration(10000.0);
 
         // Set a target far in the negative direction
         stepperZ.moveTo(-999999);
@@ -548,8 +575,8 @@ void Control::ZBackToHome()
 
 void Control::goToNutriBags()
 {
-    uint16_t borderX = 100;
-    uint16_t borderY = 100;
+    uint16_t borderX = 10;
+    uint16_t borderY = 10;
 
     // Serial.print("Moving to feed bag ");
     Serial.print(currentBag);
@@ -571,8 +598,8 @@ void Control::goToNutriBags()
             stepperY.run();
         }
         // Serial.println("Reached first feed bag.");
-        firstBagPositionX = currentMM(stepperX);
-        firstBagPositionY = currentMM(stepperY);
+        firstBagPositionX = currentMM('X');
+        firstBagPositionY = currentMM('Y');
         currentPositionX = firstBagPositionX;
         currentPositionY = firstBagPositionY;
         Serial.printf("Fist bag position X: %ld mm\n", firstBagPositionX);
@@ -598,7 +625,7 @@ void Control::goToNutriBags()
             { 
                 stepperX.moveTo(distanceMM(firstBagPositionX)); // Reset X to first column
                 stepperX.runToPosition();                       // Blocking call to ensure it finishes
-                currentPositionX = currentMM(stepperX);         // Update current bag position in X
+                currentPositionX = currentMM('X');         // Update current bag position in X
             }
             nextRowBags(); // Move to the next row if at the last column
             // isLastColumnBags = false;
@@ -747,11 +774,11 @@ void Control::goToHolder()
 void Control::nextColumnBags()
 {
     /* Column - 1: without first bags */
-    if (currentMM(stepperX) < ((nutriBags.column - 1) * nutriBags.clearanceX + firstBagPositionX))
+    if (currentMM('X') < ((nutriBags.column - 1) * nutriBags.clearanceX + firstBagPositionX))
     {
         stepperX.move(distanceMM(nutriBags.clearanceX)); // Move to the next column position
         stepperX.runToPosition();                       // Blocking call to ensure it finishes
-        currentPositionX = currentMM(stepperX); // Update current bag position in X
+        currentPositionX = currentMM('X'); // Update current bag position in X
         isLastColumnBags = false;               // Reset flag as we are not at the last column yet
     }
     else
@@ -764,11 +791,11 @@ void Control::nextColumnBags()
 void Control::nextRowBags()
 {
     /* Row - 1: without first bags */
-    if (currentMM(stepperY) < ((nutriBags.row - 1) * nutriBags.clearanceY + firstBagPositionY))
+    if (currentMM('Y') < ((nutriBags.row - 1) * nutriBags.clearanceY + firstBagPositionY))
     {
         stepperY.move(distanceMM(nutriBags.clearanceY)); // Move to the next row position
         stepperY.runToPosition();                       // Blocking call to ensure it finishes
-        currentPositionY = currentMM(stepperY);         // Update current bag position in X
+        currentPositionY = currentMM('Y');         // Update current bag position in X
         isLastRowBags = false;                          // Reset flag as we are not at the last row yet
     }
     else
