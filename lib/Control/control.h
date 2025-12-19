@@ -68,6 +68,8 @@
 #define STEPS_PER_REVOLUTION 200 // Steps per revolution for the stepper motor
 #define LEAD_SCREW_PITCH 8.0f       // Lead screw pitch in mm/rev for Z axis
 
+#pragma pack(push, 1) // Ensure no padding in the structs
+
 typedef struct NutriBags{
     uint8_t column;
     uint8_t row; // Number of rows of feed bags
@@ -75,7 +77,7 @@ typedef struct NutriBags{
     uint16_t height; // Height of the feed bag in mm
     uint16_t clearanceX; // Clearance of X direction for the feed bags in mm
     uint16_t clearanceY; // Clearance of Y direction for the feed bags in mm
-} NutriBags;
+} NutriBags_t;
 
 typedef struct Foils{
     uint16_t qty;       // Quantity of foils per package
@@ -84,26 +86,23 @@ typedef struct Foils{
     uint16_t clearanceX; // Clearance of X directoion for the feed bags in mm
     uint16_t clearanceY; // Clearance of Y direction for the feed bags in mm
 
-} Foils;
+} Foils_t;
 
-typedef struct WorkArea{
-    uint16_t length; // Length of the work area in mm
-    uint16_t width;  // Width of the work area in mm
-    uint16_t height; // Height of the work area in mm
-
-} WorkArea;
 typedef struct FoilHolder{
     uint16_t qtyFoils;
     uint16_t length; // Length of the foil holder in mm
     uint16_t width;  // Width of the foil holder in mm
-}FoilsHolder;
+}FoilHolder_t;
+
+#pragma pack(pop)
 
 class Control
 {
 public:
     Control(uint16_t workLength, uint16_t workWidth, uint16_t workHeight);
     // Access to shared stepper instances
-    void setup(NutriBags _nutriBag, Foils _foils, FoilsHolder _holder); // Setup the control system with feed bags and foils
+    void setup(NutriBags_t _nutriBag, Foils_t _foils, FoilHolder_t _holder); // Setup the control system with feed bags and foils
+    void setupMaterial(NutriBags_t _nutriBag, Foils_t _foils, FoilHolder_t _holder); // Setup material properties
     void initGripper(); // Setup the gripper servo
     void setSpreadCycle();
     void setSpreadCycle(const char axis);
@@ -149,10 +148,11 @@ public:
     static AccelStepper &getStepperX();
     static AccelStepper &getStepperY();
     static AccelStepper &getStepperZ();
+    Servo &getGripper();
+    
     ~Control() = default;
 
 private:
-    void setupMaterial(NutriBags _nutriBag, Foils _foils, FoilsHolder _holder); // Setup material properties
    
 
     TMC2209Stepper driverX = TMC2209Stepper(&Serial2, R_SENSE, DRIVER_X_ADDRESS);
@@ -171,14 +171,11 @@ private:
     long HomeX;
     long HomeY;
     long HomeZ;
-
-
-    // Work area dimensions
-    WorkArea workArea;
+    
     // Feed bags and foils
-    NutriBags nutriBags;
-    Foils foils;
-    FoilsHolder holder;
+    NutriBags_t nutriBags;
+    Foils_t foils;
+    FoilHolder_t holder;
 
     
     uint16_t currentBag = 0; // Current bag index

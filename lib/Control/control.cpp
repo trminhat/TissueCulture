@@ -7,11 +7,6 @@ AccelStepper Control::stepperZ(AccelStepper::DRIVER, Z_AXIS_STEP, Z_AXIS_DIR);
 
 Control::Control(uint16_t workLength, uint16_t workWidth, uint16_t workHeight)
 {
-
-    workArea.length = workLength;
-    workArea.width = workWidth;
-    workArea.height = workHeight;
-
     nutriBags.column = 0;     // Initialize feed bags quantity
     nutriBags.row = 0;        // Initialize feed bags quantity
     nutriBags.radius = 0;     // Initialize feed bag radius
@@ -26,11 +21,11 @@ Control::Control(uint16_t workLength, uint16_t workWidth, uint16_t workHeight)
     foils.clearanceY = 0; // Initialize clearance in Y direction
 }
 
-void Control::setup(NutriBags _nutriBags, Foils _foils, FoilsHolder _holder)
+void Control::setup(NutriBags_t _nutriBag, Foils_t _foils, FoilHolder_t _holder)
 {    
     initGripper(); // Setup the gripper servo
 
-    setupMaterial(_nutriBags, _foils, _holder);   // Setup material properties
+    setupMaterial(_nutriBag, _foils, _holder);   // Setup material properties
     pinMode(X_AXIS_LIMIT, INPUT); // Already pull-up in hardware
     pinMode(Y_AXIS_LIMIT, INPUT); // Already pull-up in hardware
     pinMode(Z_AXIS_LIMIT, INPUT); // Already pull-up in hardware
@@ -223,10 +218,10 @@ void Control::setAcceleration(const char axis, float acceleration)
     }
 }
 
-void Control::setupMaterial(NutriBags _nutriBags, Foils _foils, FoilsHolder _holder)
+void Control::setupMaterial(NutriBags_t _nutriBag, Foils_t _foils, FoilHolder_t _holder)
 {
     // Setup material properties
-    this->nutriBags = _nutriBags; // Store feed bags information
+    this->nutriBags = _nutriBag; // Store feed bags information
     this->foils = _foils;       // Store foils information
     this->holder = _holder;     // Store foil holder information
 
@@ -813,3 +808,4 @@ void Control::runSequence()
 AccelStepper &Control::getStepperX() { return stepperX; }
 AccelStepper &Control::getStepperY() { return stepperY; }
 AccelStepper &Control::getStepperZ() { return stepperZ; }
+Servo &Control::getGripper()         { return gripperServo; }
