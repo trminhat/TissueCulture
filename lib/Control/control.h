@@ -7,6 +7,7 @@
 #include <TMCStepper.h>
 #include <ESP32Servo.h>
 
+
 /* NOTICE: DISCONNECT GPIO 0/2/5/12/15/RST FROM ENA PIN. IT WLL MAKE ESP32 CANNOT WORK AFTER FIRST TIME UPLOAD
 
     + The GPIO 0/2/5/12/15/RST pin is Strapping Pin, which is used to select the boot mode of the ESP32.
@@ -126,12 +127,14 @@ public:
     long getHomeY() const { return HomeY; }
     long getHomeZ() const { return HomeZ; }
     
-    uint16_t getCurrentBags()      { return currentBag;          }
-    uint16_t getCurrentFoils()     { return currentFoil;         }
-    long getCurrentPositionX_mm()  { return currentMM('X'); }
-    long getCurrentPositionY_mm()  { return currentMM('Y'); }
-    long getCurrentPositionZ_mm()  { return currentMM('Z'); }
-    int getCurrentGripper()        { return gripperServo.read(); }
+    uint16_t getCurrentBags()      {        return currentBag;          }
+    uint16_t getCurrentFoils()     {        return currentFoil;         }
+    long getCurrentPositionX_mm()  {        return currentMM('X');      }
+    long getCurrentPositionY_mm()  {        return currentMM('Y');      }
+    long getCurrentPositionZ_mm()  {        return currentMM('Z');      }
+    int getCurrentGripper()        {        return gripperServo.read(); }
+    void resetCurrentBag()         {        currentBag = 0;             } 
+    void resetCurrentFoil()        {        currentFoil = 0;            }
 
     /* Sequency Functions */
     void goToNutriBags();
@@ -171,7 +174,11 @@ private:
     long HomeX;
     long HomeY;
     long HomeZ;
+
     
+    
+    
+
     // Feed bags and foils
     NutriBags_t nutriBags;
     Foils_t foils;

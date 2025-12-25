@@ -128,6 +128,16 @@ void recvPackage()
   }
   delay(100);
 }
+void vTask_UARTComm(void *parameter)
+{
+  while (true)
+  {
+    // Serial.printf("Checking for incoming packages...\n");
+    recvPackage(); // Check and process incoming packages
+    sendPackge();
+    vTaskDelay(10);
+  }
+}
 
 void vTask_ControlMotor(void *parameter)
 {
@@ -194,6 +204,8 @@ void vTask_ControlMotor(void *parameter)
 
       case SETUP_MATERIAL:
         Serial.println("Setting up material properties...");
+        control.resetCurrentBag();
+        control.resetCurrentFoil();
 
         bags = incomingPack.payload.systemData.bags;
         foils = incomingPack.payload.systemData.foils;
@@ -211,30 +223,9 @@ void vTask_ControlMotor(void *parameter)
         // Serial.println("Unknown command received.");
         break;
       }
-
-      // if(incomingPack.request == ASK_CURRENT_POSITION){
-      //   outgoingPack.request = MOTION_COMPLETED;
-      //   outgoingPack.current_X_mm = control.getCurrentPositionX_mm();
-      //   outgoingPack.current_Y_mm = control.getCurrentPositionY_mm();
-      //   outgoingPack.current_Z_mm = control.getCurrentPositionZ_mm();
-      //   outgoingPack.current_gripper_deg = control.getCurrentGripper();
-      //   xQueueSend(xSendQueue, &outgoingPack, 0);
-      //   Serial.println("Sending Current Position Data...");
-      // }
     }
 
     vTaskDelay(100);
-  }
-}
-
-void vTask_UARTComm(void *parameter)
-{
-  while (true)
-  {
-    // Serial.printf("Checking for incoming packages...\n");
-    recvPackage(); // Check and process incoming packages
-    sendPackge();
-    vTaskDelay(10);
   }
 }
 
