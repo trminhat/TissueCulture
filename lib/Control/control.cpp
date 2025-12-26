@@ -5,13 +5,23 @@ AccelStepper Control::stepperX(AccelStepper::DRIVER, X_AXIS_STEP, X_AXIS_DIR);
 AccelStepper Control::stepperY(AccelStepper::DRIVER, Y_AXIS_STEP, Y_AXIS_DIR);
 AccelStepper Control::stepperZ(AccelStepper::DRIVER, Z_AXIS_STEP, Z_AXIS_DIR);
 
+void IRAM_ATTR handleLimitX()
+{
+    Control::getStepperX().setCurrentPosition(-999999);
+}
+
+void IRAM_ATTR handleLimitY()
+{
+    Control::getStepperY().setCurrentPosition(-999999);
+}
+
+void IRAM_ATTR handleLimitZ()
+{
+    Control::getStepperZ().setCurrentPosition(-999999);
+}
+
 Control::Control(uint16_t workLength, uint16_t workWidth, uint16_t workHeight)
 {
-
-    workArea.length = workLength;
-    workArea.width = workWidth;
-    workArea.height = workHeight;
-
     nutriBags.column = 0;     // Initialize feed bags quantity
     nutriBags.row = 0;        // Initialize feed bags quantity
     nutriBags.radius = 0;     // Initialize feed bag radius
@@ -26,16 +36,14 @@ Control::Control(uint16_t workLength, uint16_t workWidth, uint16_t workHeight)
     foils.clearanceY = 0; // Initialize clearance in Y direction
 }
 
-void Control::setup(NutriBags _nutriBags, Foils _foils, FoilsHolder _holder)
+void Control::setup(NutriBags_t _nutriBag, Foils_t _foils, FoilHolder_t _holder)
 {
-    Serial2.begin(115200, SERIAL_8N1, RX2, TX2); // Initialize Serial2 for TMC2209
-    
     initGripper(); // Setup the gripper servo
 
-    setupMaterial(_nutriBags, _foils, _holder);   // Setup material properties
-    pinMode(X_AXIS_LIMIT, INPUT); // Already pull-up in hardware
-    pinMode(Y_AXIS_LIMIT, INPUT); // Already pull-up in hardware
-    pinMode(Z_AXIS_LIMIT, INPUT); // Already pull-up in hardware
+    setupMaterial(_nutriBag, _foils, _holder); // Setup material properties
+    pinMode(X_AXIS_LIMIT, INPUT);              // Already pull-up in hardware
+    pinMode(Y_AXIS_LIMIT, INPUT);              // Already pull-up in hardware
+    pinMode(Z_AXIS_LIMIT, INPUT);              // Already pull-up in hardware
 
     // Setup Driver
     driverX.begin();                    // Initialize TMC2209 driver for X axis
@@ -50,8 +58,7 @@ void Control::setup(NutriBags _nutriBags, Foils _foils, FoilsHolder _holder)
     driverY2.rms_current(450);
     driverY2.microsteps(MICRO_STEPPING);
 
-
-    driverZ.begin(); // Initialize TMC2209 driver for Z axis
+    driverZ.begin();           // Initialize TMC2209 driver for Z axis
     driverZ.rms_current(1300); // Setting 80% of current rate limit of stepper motor in mA
     driverZ.microsteps(MICRO_STEPPING);
 
@@ -64,14 +71,15 @@ void Control::setup(NutriBags _nutriBags, Foils _foils, FoilsHolder _holder)
     gripperServo.write(GRIPPER_OPEN_90DEG); // Open gripper at 90 degrees
 }
 
-void Control::initGripper(){
+void Control::initGripper()
+{
 
     ESP32PWM::allocateTimer(0);
-	ESP32PWM::allocateTimer(1);
-	ESP32PWM::allocateTimer(2);
-	ESP32PWM::allocateTimer(3);
-	gripperServo.setPeriodHertz(50);    // standard 50 hz servo
-	gripperServo.attach(GRIPPER_PIN, 1000, 2000);
+    ESP32PWM::allocateTimer(1);
+    ESP32PWM::allocateTimer(2);
+    ESP32PWM::allocateTimer(3);
+    gripperServo.setPeriodHertz(50); // standard 50 hz servo
+    gripperServo.attach(GRIPPER_PIN, 1000, 2000);
 }
 void Control::setSpreadCycle()
 {
@@ -128,7 +136,6 @@ void Control::setStealthChop()
 
     Serial.println("StealthChop mode set for all drivers.");
 }
-
 
 void Control::setStealthChop(const char axis)
 {
@@ -225,12 +232,12 @@ void Control::setAcceleration(const char axis, float acceleration)
     }
 }
 
-void Control::setupMaterial(NutriBags _nutriBags, Foils _foils, FoilsHolder _holder)
+void Control::setupMaterial(NutriBags_t _nutriBag, Foils_t _foils, FoilHolder_t _holder)
 {
     // Setup material properties
-    this->nutriBags = _nutriBags; // Store feed bags information
-    this->foils = _foils;       // Store foils information
-    this->holder = _holder;     // Store foil holder information
+    this->nutriBags = _nutriBag; // Store feed bags information
+    this->foils = _foils;        // Store foils information
+    this->holder = _holder;      // Store foil holder information
 
     Serial.print("Feed Bags: ");
     Serial.print(nutriBags.column * nutriBags.row); // Calculate total quantity of feed bags
@@ -301,10 +308,12 @@ long Control::distanceMM(int16_t mm)
 long Control::distanceMM_ZAxis(int16_t mm)
 {
     // 200 steps per revolution, 32 microsteps, 20 teeth pulley, 8 mm pitch
-    long steps = (STEPS_PER_REVOLUTION * MICRO_STEPPING) / (LED_SCREW_PITCH);
+    long steps = (STEPS_PER_REVOLUTION * MICRO_STEPPING) / (LEAD_SCREW_PITCH);
 
-    if(mm > 50) mm = 50; // Limit maximum Z travel to 55mm to avoid collision with the work area
-    if(mm < 0) mm = 0;   // Limit minimum Z travel to 0mm
+    if (mm > 50)
+        mm = 50; // Limit maximum Z travel to 55mm to avoid collision with the work area
+    if (mm < 0)
+        mm = 0; // Limit minimum Z travel to 0mm
 
     // Convert mm to steps
     long stepsNeeded = mm * steps;
@@ -312,19 +321,54 @@ long Control::distanceMM_ZAxis(int16_t mm)
     return stepsNeeded;
 }
 
-long Control::currentMM(AccelStepper &stepper)
+long Control::currentMM(char axis)
 {
-    long currentPositionSteps = stepper.currentPosition();                                                                 // Get current position in steps
-    long currentPositionMM = currentPositionSteps * (PULLEY_TEETH * BELL_PITCH) / (STEPS_PER_REVOLUTION * MICRO_STEPPING); // Convert steps to mm
+    long currentPositionSteps;
+    long currentPositionMM;
+    switch (axis)
+    {
+    case 'X':
+    case 'x':
+        currentPositionSteps = stepperX.currentPosition();                                                                // Get current position in steps
+        currentPositionMM = currentPositionSteps * (PULLEY_TEETH * BELL_PITCH) / (STEPS_PER_REVOLUTION * MICRO_STEPPING); // Convert steps to mm
+        break;
+    case 'Y':
+    case 'y':
+        currentPositionSteps = stepperY.currentPosition();                                                                // Get current position in steps
+        currentPositionMM = currentPositionSteps * (PULLEY_TEETH * BELL_PITCH) / (STEPS_PER_REVOLUTION * MICRO_STEPPING); // Convert steps to
+        break;
+    case 'Z':
+    case 'z':
+        currentPositionSteps = stepperZ.currentPosition();                                                       // Get current position in steps
+        currentPositionMM = currentPositionSteps * (LEAD_SCREW_PITCH) / (STEPS_PER_REVOLUTION * MICRO_STEPPING); // Convert steps to mm for Z
+        break;
+    default:
+        Serial.println("Invalid axis specified. Use 'X', 'Y', or 'Z'.");
+        return -1;
+    }
+
+    // long currentPositionSteps = stepper.currentPosition();                                                                 // Get current position in steps
+    // long currentPositionMM = currentPositionSteps * (PULLEY_TEETH * BELL_PITCH) / (STEPS_PER_REVOLUTION * MICRO_STEPPING); // Convert steps to mm
+    // if(stepper == stepperZ) {
+    //     currentPositionMM = currentPositionSteps * (LEAD_SCREW_PITCH) / (STEPS_PER_REVOLUTION * MICRO_STEPPING); // Convert steps to mm for Z axis
+    // }
     return currentPositionMM;
 }
 
 void Control::Homing()
 {
+    // attachInterrupt(digitalPinToInterrupt(X_AXIS_LIMIT), handleLimitX, FALLING);
+    // attachInterrupt(digitalPinToInterrupt(Y_AXIS_LIMIT), handleLimitY, FALLING);
+    // attachInterrupt(digitalPinToInterrupt(Z_AXIS_LIMIT), handleLimitZ, FALLING);
     // Perform homing for all axes
     ZHoming();
     YHoming();
     XHoming();
+
+    // Detach interrupts after homing
+    // detachInterrupt(digitalPinToInterrupt(X_AXIS_LIMIT));
+    // detachInterrupt(digitalPinToInterrupt(Y_AXIS_LIMIT));
+    // detachInterrupt(digitalPinToInterrupt(Z_AXIS_LIMIT));
 }
 
 void Control::XHoming()
@@ -342,40 +386,34 @@ void Control::XHoming()
         // --- Save original settings ---
         float originalMaxSpeed = stepperX.maxSpeed();
         float originalAcceleration = stepperX.acceleration();
+        attachInterrupt(digitalPinToInterrupt(X_AXIS_LIMIT), handleLimitX, FALLING);
 
         // --- Pass 1: Fast move to the limit switch ---
-        stepperX.setMaxSpeed(2000.0); // Use a moderate speed for the first pass
-        stepperX.setAcceleration(1000.0);
-
+        stepperX.setMaxSpeed(10000.0); // Use a moderate speed for the first pass
+        stepperX.setAcceleration(5000.0);
         // Set a target far in the negative direction
         stepperX.moveTo(-999999);
-
-        while (digitalRead(X_AXIS_LIMIT) == HIGH)
-        {
-            stepperX.run();
-        }
-        delay(50); // Debounce delay
+        stepperX.runToPosition(); // Blocking call to ensure it finishes
 
         // Stop motor and reset position temporarily
+        delay(50); // Debounce delay
         stepperX.stop();
         stepperX.setCurrentPosition(0);
         Serial.println("First pass complete.");
+        detachInterrupt(digitalPinToInterrupt(X_AXIS_LIMIT));
 
         // --- Back off the switch ---
-        stepperX.moveTo(distanceMM(10)); // Move 5mm away from the switch
+        stepperX.moveTo(distanceMM(10)); // Move 10mm away from the switch
         stepperX.runToPosition();        // Blocking call to ensure it finishes
         Serial.println("Backed off switch.");
+        attachInterrupt(digitalPinToInterrupt(X_AXIS_LIMIT), handleLimitX, FALLING);
 
         // --- Pass 2: Slow move to the limit switch for accuracy ---
-        stepperX.setMaxSpeed(500.0); // Very slow for precision
-        stepperX.setAcceleration(250.0);
+        stepperX.setMaxSpeed(1000.0); // Very slow for precision
+        stepperX.setAcceleration(500.0);
         stepperX.moveTo(-999999); // Move back towards the switch
-
-        while (digitalRead(X_AXIS_LIMIT) == HIGH)
-        {
-            stepperX.run();
-        }
-        delay(50); // Debounce delay
+        stepperX.runToPosition(); // Blocking call to ensure it finishes
+        delay(50);                // Debounce delay
 
         stepperX.stop();
 
@@ -384,6 +422,7 @@ void Control::XHoming()
         HomeX = stepperX.currentPosition(); // Store the home position for X axis
         Serial.println("Homing X complete. Position set to 0.");
         Serial.printf("Home X: %ld\n", HomeX);
+        detachInterrupt(digitalPinToInterrupt(X_AXIS_LIMIT));
 
         // --- Restore original settings ---
         stepperX.setMaxSpeed(originalMaxSpeed);
@@ -406,48 +445,43 @@ void Control::YHoming()
         // --- Save original settings ---
         float originalMaxSpeed = stepperY.maxSpeed();
         float originalAcceleration = stepperY.acceleration();
+        attachInterrupt(digitalPinToInterrupt(Y_AXIS_LIMIT), handleLimitY, FALLING);
 
         // --- Pass 1: Fast move to the limit switch ---
-        stepperY.setMaxSpeed(2000.0); // Use a moderate speed for the first pass
-        stepperY.setAcceleration(1000.0);
-
+        stepperY.setMaxSpeed(10000.0); // Use a moderate speed for the first pass
+        stepperY.setAcceleration(5000.0);
         // Set a target far in the negative direction
         stepperY.moveTo(-999999);
-
-        while (digitalRead(Y_AXIS_LIMIT) == HIGH)
-        {
-            stepperY.run();
-        }
-        delay(50); // Debounce delay
+        stepperY.runToPosition(); // Blocking call to ensure it finishes
 
         // Stop motor and reset position temporarily
+        delay(50); // Debounce delay
         stepperY.stop();
         stepperY.setCurrentPosition(0);
         Serial.println("First pass complete.");
+        detachInterrupt(digitalPinToInterrupt(Y_AXIS_LIMIT));
 
         // --- Back off the switch ---
-        stepperY.moveTo(distanceMM(10)); // Move 5mm away from the switch
+        stepperY.moveTo(distanceMM(10)); // Move 10mm away from the switch
         stepperY.runToPosition();        // Blocking call to ensure it finishes
         Serial.println("Backed off switch.");
+        attachInterrupt(digitalPinToInterrupt(Y_AXIS_LIMIT), handleLimitY, FALLING);
 
         // --- Pass 2: Slow move to the limit switch for accuracy ---
-        stepperY.setMaxSpeed(500.0); // Very slow for precision
-        stepperY.setAcceleration(250.0);
+        stepperY.setMaxSpeed(1000.0); // Very slow for precision
+        stepperY.setAcceleration(500.0);
         stepperY.moveTo(-999999); // Move back towards the switch
-
-        while (digitalRead(Y_AXIS_LIMIT) == HIGH)
-        {
-            stepperY.run();
-        }
-        delay(50); // Debounce delay
+        stepperY.runToPosition(); // Blocking call to ensure it finishes
+        delay(50);                // Debounce delay
 
         stepperY.stop();
 
         // This is the true home position. Set it to 0.
         stepperY.setCurrentPosition(0);
-        HomeY = stepperY.currentPosition(); // Store the home position for Y axis
-        Serial.printf("Homing Y complete. Position set to 0.\n");
+        HomeY = stepperY.currentPosition(); // Store the home position for X axis
+        Serial.println("Homing Y complete. Position set to 0.");
         Serial.printf("Home Y: %ld\n", HomeY);
+        detachInterrupt(digitalPinToInterrupt(Y_AXIS_LIMIT));
 
         // --- Restore original settings ---
         stepperY.setMaxSpeed(originalMaxSpeed);
@@ -455,62 +489,59 @@ void Control::YHoming()
     }
 }
 
-void Control::ZHoming() {
+void Control::ZHoming()
+{
     Serial.println("Homing Z axis...");
     if (digitalRead(Z_AXIS_LIMIT) == LOW)
     {
         Serial.println("Z axis limit switch is already triggered. Skipping homing.");
-        stepperX.setCurrentPosition(0); // Set current position to 0 if already at home
+        stepperZ.setCurrentPosition(0); // Set current position to 0 if already at home
         HomeZ = 0;                      // Store home position
         return;
     }
     else
     {
         // --- Save original settings ---
-        float originalMaxSpeed = stepperX.maxSpeed();
-        float originalAcceleration = stepperX.acceleration();
+        float originalMaxSpeed = stepperZ.maxSpeed();
+        float originalAcceleration = stepperZ.acceleration();
+        attachInterrupt(digitalPinToInterrupt(Z_AXIS_LIMIT), handleLimitZ, FALLING);
 
         // --- Pass 1: Fast move to the limit switch ---
-        stepperZ.setMaxSpeed(2000.0); // Use a moderate speed for the first pass
-        stepperZ.setAcceleration(1000.0);
+        stepperZ.setMaxSpeed(20000.0); // Use a moderate speed for the first pass
+        stepperZ.setAcceleration(10000.0);
 
         // Set a target far in the negative direction
         stepperZ.moveTo(-999999);
-
-        while (digitalRead(Z_AXIS_LIMIT) == HIGH)
-        {
-            stepperZ.run();
-        }
-        delay(50); // Debounce delay
+        stepperZ.runToPosition(); // Blocking call to ensure it finishes
+        delay(50);                // Debounce delay
 
         // Stop motor and reset position temporarily
         stepperZ.stop();
         stepperZ.setCurrentPosition(0);
         Serial.println("First pass complete.");
+        detachInterrupt(digitalPinToInterrupt(Z_AXIS_LIMIT));
 
         // --- Back off the switch ---
         stepperZ.moveTo(distanceMM(10)); // Move 5mm away from the switch
         stepperZ.runToPosition();        // Blocking call to ensure it finishes
         Serial.println("Backed off switch.");
+        attachInterrupt(digitalPinToInterrupt(Z_AXIS_LIMIT), handleLimitZ, FALLING);
 
         // --- Pass 2: Slow move to the limit switch for accuracy ---
         stepperZ.setMaxSpeed(500.0); // Very slow for precision
         stepperZ.setAcceleration(250.0);
         stepperZ.moveTo(-999999); // Move back towards the switch
-
-        while (digitalRead(Z_AXIS_LIMIT) == HIGH)
-        {
-            stepperZ.run();
-        }
-        delay(50); // Debounce delay
+        stepperZ.runToPosition(); // Blocking call to ensure it finishes
+        delay(50);                // Debounce delay
 
         stepperZ.stop();
 
         // This is the true home position. Set it to 0.
         stepperZ.setCurrentPosition(0);
         HomeZ = stepperZ.currentPosition(); // Store the home position for X axis
-        Serial.println("Homing X complete. Position set to 0.");
-        Serial.printf("Home X: %ld\n", HomeX);
+        Serial.println("Homing Z complete. Position set to 0.");
+        Serial.printf("Home Z: %ld\n", HomeZ);
+        detachInterrupt(digitalPinToInterrupt(Z_AXIS_LIMIT));
 
         // --- Restore original settings ---
         stepperZ.setMaxSpeed(originalMaxSpeed);
@@ -550,18 +581,18 @@ void Control::ZBackToHome()
 
 void Control::goToNutriBags()
 {
-    uint16_t borderX = 100;
-    uint16_t borderY = 100;
+    uint16_t borderX = 10;
+    uint16_t borderY = 10;
 
     // Serial.print("Moving to feed bag ");
     Serial.print(currentBag);
     Serial.print(" of ");
     Serial.print(nutriBags.column * nutriBags.row);
     Serial.println("...");
-    
+
     Serial.printf("Current Position X: %ld mm\t", currentPositionX);
     Serial.printf("Current Position Y: %ld mm\n", currentPositionY);
-    
+
     if (currentBag < 1)
     {
         // Serial.println("Moving to first feed bag...");
@@ -573,8 +604,8 @@ void Control::goToNutriBags()
             stepperY.run();
         }
         // Serial.println("Reached first feed bag.");
-        firstBagPositionX = currentMM(stepperX);
-        firstBagPositionY = currentMM(stepperY);
+        firstBagPositionX = currentMM('X');
+        firstBagPositionY = currentMM('Y');
         currentPositionX = firstBagPositionX;
         currentPositionY = firstBagPositionY;
         Serial.printf("Fist bag position X: %ld mm\n", firstBagPositionX);
@@ -597,10 +628,10 @@ void Control::goToNutriBags()
         if (isLastColumnBags)
         {
             if (isFoilsDoneProcess)
-            { 
+            {
                 stepperX.moveTo(distanceMM(firstBagPositionX)); // Reset X to first column
                 stepperX.runToPosition();                       // Blocking call to ensure it finishes
-                currentPositionX = currentMM(stepperX);         // Update current bag position in X
+                currentPositionX = currentMM('X');              // Update current bag position in X
             }
             nextRowBags(); // Move to the next row if at the last column
             // isLastColumnBags = false;
@@ -623,15 +654,15 @@ void Control::goToFoils()
         // Serial.print(" of ");
         // Serial.print(foils.qty);
         // Serial.println("...");
-         /* Pick the foils here */
-        stepperZ.moveTo(distanceMM_ZAxis(50)); // Move Z axis up to avoid collision
-        stepperZ.runToPosition();              // Blocking call to ensure it finishes
+        /* Pick the foils here */
+        stepperZ.moveTo(distanceMM_ZAxis(50));  // Move Z axis up to avoid collision
+        stepperZ.runToPosition();               // Blocking call to ensure it finishes
         gripperServo.write(GRIPPER_CLOSE_0DEG); // Close gripper to pick foil
-        delay(1000); // Wait for gripper to close
-        stepperZ.moveTo(distanceMM_ZAxis(0));  // Move Z axis down to pick foil
-        stepperZ.runToPosition();              // Blocking call to ensure it finishes
+        delay(1000);                            // Wait for gripper to close
+        stepperZ.moveTo(distanceMM_ZAxis(0));   // Move Z axis down to pick foil
+        stepperZ.runToPosition();               // Blocking call to ensure it finishes
         Serial.println("Picked foil.");
-        
+
         // /* back to current Bag */
         if (currentBag < 1)
         {
@@ -645,7 +676,7 @@ void Control::goToFoils()
             }
             if (currentFoil < foils.qty)
             {
-                
+
                 stepperX.move(distanceMM(2)); // Move to the next foil position
                 stepperY.move(distanceMM(2)); // Adjust Y position based on column
                 while (stepperX.distanceToGo() != 0 || stepperY.distanceToGo() != 0)
@@ -653,14 +684,14 @@ void Control::goToFoils()
                     stepperX.run();
                     stepperY.run();
                 }
-                
+
                 /* Place foil into FeedBag here */
-                stepperZ.moveTo(distanceMM_ZAxis(50)); // Move Z axis up to avoid collision
-                stepperZ.runToPosition();              // Blocking call to ensure it finishes
+                stepperZ.moveTo(distanceMM_ZAxis(50));  // Move Z axis up to avoid collision
+                stepperZ.runToPosition();               // Blocking call to ensure it finishes
                 gripperServo.write(GRIPPER_OPEN_90DEG); // Open gripper to release foil
-                delay(1000); // Wait for gripper to close
-                stepperZ.moveTo(distanceMM_ZAxis(0));  // Move Z axis down to pick foil
-                stepperZ.runToPosition();              // Blocking call to ensure it finishes
+                delay(1000);                            // Wait for gripper to close
+                stepperZ.moveTo(distanceMM_ZAxis(0));   // Move Z axis down to pick foil
+                stepperZ.runToPosition();               // Blocking call to ensure it finishes
 
                 Serial.println("Placed foil.");
 
@@ -692,7 +723,7 @@ void Control::goToFoils()
             // Serial.println("Moving to next foil...");
             if (currentFoil < foils.qty)
             {
-                
+
                 // float angleInRadians = 90 * PI / 180.0;
                 // float targetX_mm = currentMM(stepperX) + foils.radius * cos(angleInRadians);
                 // float targetY_mm = currentMM(stepperY) + foils.radius * sin(angleInRadians);
@@ -706,13 +737,12 @@ void Control::goToFoils()
                 Serial.println("Reached next foil.");
 
                 /* Place the Foils into NutriBags here */
-                stepperZ.moveTo(distanceMM_ZAxis(50)); // Move Z axis up to avoid collision
-                stepperZ.runToPosition();              // Blocking call to ensure it finishes
+                stepperZ.moveTo(distanceMM_ZAxis(50));  // Move Z axis up to avoid collision
+                stepperZ.runToPosition();               // Blocking call to ensure it finishes
                 gripperServo.write(GRIPPER_OPEN_90DEG); // Open gripper to release foil
-                delay(1000); // Wait for gripper to close
-                stepperZ.moveTo(distanceMM_ZAxis(0));  // Move Z axis down to pick foil
-                stepperZ.runToPosition();              // Blocking call to ensure it finishes
-
+                delay(1000);                            // Wait for gripper to close
+                stepperZ.moveTo(distanceMM_ZAxis(0));   // Move Z axis down to pick foil
+                stepperZ.runToPosition();               // Blocking call to ensure it finishes
 
                 currentFoil++; // Increment the foil index
             }
@@ -749,12 +779,12 @@ void Control::goToHolder()
 void Control::nextColumnBags()
 {
     /* Column - 1: without first bags */
-    if (currentMM(stepperX) < ((nutriBags.column - 1) * nutriBags.clearanceX + firstBagPositionX))
+    if (currentMM('X') < ((nutriBags.column - 1) * nutriBags.clearanceX + firstBagPositionX))
     {
         stepperX.move(distanceMM(nutriBags.clearanceX)); // Move to the next column position
-        stepperX.runToPosition();                       // Blocking call to ensure it finishes
-        currentPositionX = currentMM(stepperX); // Update current bag position in X
-        isLastColumnBags = false;               // Reset flag as we are not at the last column yet
+        stepperX.runToPosition();                        // Blocking call to ensure it finishes
+        currentPositionX = currentMM('X');               // Update current bag position in X
+        isLastColumnBags = false;                        // Reset flag as we are not at the last column yet
     }
     else
     {
@@ -766,12 +796,12 @@ void Control::nextColumnBags()
 void Control::nextRowBags()
 {
     /* Row - 1: without first bags */
-    if (currentMM(stepperY) < ((nutriBags.row - 1) * nutriBags.clearanceY + firstBagPositionY))
+    if (currentMM('Y') < ((nutriBags.row - 1) * nutriBags.clearanceY + firstBagPositionY))
     {
         stepperY.move(distanceMM(nutriBags.clearanceY)); // Move to the next row position
-        stepperY.runToPosition();                       // Blocking call to ensure it finishes
-        currentPositionY = currentMM(stepperY);         // Update current bag position in X
-        isLastRowBags = false;                          // Reset flag as we are not at the last row yet
+        stepperY.runToPosition();                        // Blocking call to ensure it finishes
+        currentPositionY = currentMM('Y');               // Update current bag position in X
+        isLastRowBags = false;                           // Reset flag as we are not at the last row yet
     }
     else
     {
@@ -788,3 +818,4 @@ void Control::runSequence()
 AccelStepper &Control::getStepperX() { return stepperX; }
 AccelStepper &Control::getStepperY() { return stepperY; }
 AccelStepper &Control::getStepperZ() { return stepperZ; }
+Servo &Control::getGripper() { return gripperServo; }
