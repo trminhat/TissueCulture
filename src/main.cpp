@@ -41,7 +41,7 @@ void recvPackage()
   while (Serial1.available())
   {
     char c = Serial1.read(); // Read a byte from Serial1
-    Serial.printf("Ras Data Receiving: 0x%02X\n", c);
+    Serial.printf("Data Receiving: 0x%02X\n", c);
     switch (recvState)
     {
     case WATING_START_1ST:
@@ -188,18 +188,33 @@ void vTask_ControlMotor(void *parameter)
         control.getStepperY().runToPosition(); // Blocking call to ensure it finishes
         control.getStepperZ().moveTo(control.distanceMM_ZAxis(incomingPack.payload.stateData.z_pos_mm));
         control.getStepperZ().runToPosition(); // Blocking call to ensure it finishes
+        
         outgoingPack.request = MOTION_COMPLETED;
+        outgoingPack.current_X_mm = control.getCurrentPositionX_mm();
+        outgoingPack.current_Y_mm = control.getCurrentPositionY_mm();
+        outgoingPack.current_Z_mm = control.getCurrentPositionZ_mm();
+        outgoingPack.current_Foils = control.getCurrentFoils();
+        outgoingPack.current_Bags = control.getCurrentBags();
+
+        xQueueSend(xSendQueue, &outgoingPack, 0);
+
         break;
       case CONTROL_GRIPPER:
         Serial.println("Received OPEN_GRIPPER command.");
         control.getGripper().write(incomingPack.payload.stateData.gripper_deg); // Assuming z_pos_mm holds the gripper position
         outgoingPack.request = MOTION_COMPLETED;
+
+        xQueueSend(xSendQueue, &outgoingPack, 0);
+
         break;
 
       case HOMING:
         Serial.println("Performing Homing Sequence...");
         control.Homing(); // Issue: Homing IN TASK MAY BLOCK OTHER TASKS CAUSED FROM WHILE LOOP WAITING FOR LIMIT SWITCH !!!!
         outgoingPack.request = MOTION_COMPLETED;
+
+        xQueueSend(xSendQueue, &outgoingPack, 0);
+
         break;
 
       case SETUP_MATERIAL:
@@ -212,6 +227,7 @@ void vTask_ControlMotor(void *parameter)
         holder = incomingPack.payload.systemData.holder;
         control.setupMaterial(bags, foils, holder);
         outgoingPack.request = MOTION_COMPLETED;
+        xQueueSend(xSendQueue, &outgoingPack, 0);
 
         Serial.printf("Material Setup Complete: Bags(%d cols, %d rows), Foils(%d qty), Holder( %d Foils in Holder, %d length, %d width)\n",
                       bags.column, bags.row,
