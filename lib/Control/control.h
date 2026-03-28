@@ -7,6 +7,7 @@
 #include <TMCStepper.h>
 #include <ESP32Servo.h>
 
+
 /* NOTICE: DISCONNECT GPIO 0/2/5/12/15/RST FROM ENA PIN. IT WLL MAKE ESP32 CANNOT WORK AFTER FIRST TIME UPLOAD
 
     + The GPIO 0/2/5/12/15/RST pin is Strapping Pin, which is used to select the boot mode of the ESP32.
@@ -39,6 +40,9 @@
 #define GRIPPER_OPEN_90DEG 90
 #define GRIPPER_OPEN_180DEG 180
 
+#define UART_JETSON_RX1 27
+#define UART_JETSON_TX1 32
+
 #define CW 1
 #define CCW 0
 
@@ -63,7 +67,9 @@
 #define PULLEY_TEETH 20          // Number of teeth on the pulley
 #define BELL_PITCH 2.0f          // Pitch of the GT2 belt in mm
 #define STEPS_PER_REVOLUTION 200 // Steps per revolution for the stepper motor
-#define LED_SCREW_PITCH 8.0f       // Lead screw pitch in mm/rev for Z axis
+#define LEAD_SCREW_PITCH 8.0f       // Lead screw pitch in mm/rev for Z axis
+
+#pragma pack(push, 1) // Ensure no padding in the structs
 
 typedef struct NutriBags{
     uint8_t column;
@@ -72,35 +78,32 @@ typedef struct NutriBags{
     uint16_t height; // Height of the feed bag in mm
     uint16_t clearanceX; // Clearance of X direction for the feed bags in mm
     uint16_t clearanceY; // Clearance of Y direction for the feed bags in mm
-} NutriBags;
+} NutriBags_t;
 
 typedef struct Foils{
-    uint16_t qty;
+    uint16_t qty;       // Quantity of foils per package
     uint16_t radius; // Radius of the feed bag in mm
     uint16_t height; // Height of the foil in mm
     uint16_t clearanceX; // Clearance of X directoion for the feed bags in mm
     uint16_t clearanceY; // Clearance of Y direction for the feed bags in mm
 
-} Foils;
+} Foils_t;
 
-typedef struct WorkArea{
-    uint16_t length; // Length of the work area in mm
-    uint16_t width;  // Width of the work area in mm
-    uint16_t height; // Height of the work area in mm
-
-} WorkArea;
 typedef struct FoilHolder{
     uint16_t qtyFoils;
     uint16_t length; // Length of the foil holder in mm
     uint16_t width;  // Width of the foil holder in mm
-}FoilsHolder;
+}FoilHolder_t;
+
+#pragma pack(pop)
 
 class Control
 {
 public:
     Control(uint16_t workLength, uint16_t workWidth, uint16_t workHeight);
     // Access to shared stepper instances
-    void setup(NutriBags _nutriBag, Foils _foils, FoilsHolder _holder); // Setup the control system with feed bags and foils
+    void setup(NutriBags_t _nutriBag, Foils_t _foils, FoilHolder_t _holder); // Setup the control system with feed bags and foils
+    void setupMaterial(NutriBags_t _nutriBag, Foils_t _foils, FoilHolder_t _holder); // Setup material properties
     void initGripper(); // Setup the gripper servo
     void setSpreadCycle();
     void setSpreadCycle(const char axis);
@@ -124,8 +127,14 @@ public:
     long getHomeY() const { return HomeY; }
     long getHomeZ() const { return HomeZ; }
     
-    uint16_t getCurrentBags()  const { return currentBag;  }
-    uint16_t getCurrentFoils() const { return currentFoil; }
+    uint16_t getCurrentBags()      {        return currentBag;          }
+    uint16_t getCurrentFoils()     {        return currentFoil;         }
+    long getCurrentPositionX_mm()  {        return currentMM('X');      }
+    long getCurrentPositionY_mm()  {        return currentMM('Y');      }
+    long getCurrentPositionZ_mm()  {        return currentMM('Z');      }
+    int getCurrentGripper()        {        return gripperServo.read(); }
+    void resetCurrentBag()         {        currentBag = 0;             } 
+    void resetCurrentFoil()        {        currentFoil = 0;            }
 
     /* Sequency Functions */
     void goToNutriBags();
@@ -137,15 +146,16 @@ public:
     
     long distanceMM(int16_t mm);
     long distanceMM_ZAxis(int16_t mm);
-    long currentMM(AccelStepper &stepper);
+    long currentMM(char axis);
 
     static AccelStepper &getStepperX();
     static AccelStepper &getStepperY();
     static AccelStepper &getStepperZ();
+    Servo &getGripper();
+    
     ~Control() = default;
 
 private:
-    void setupMaterial(NutriBags _nutriBag, Foils _foils, FoilsHolder _holder); // Setup material properties
    
 
     TMC2209Stepper driverX = TMC2209Stepper(&Serial2, R_SENSE, DRIVER_X_ADDRESS);
@@ -165,13 +175,14 @@ private:
     long HomeY;
     long HomeZ;
 
+    
+    
+    
 
-    // Work area dimensions
-    WorkArea workArea;
     // Feed bags and foils
-    NutriBags nutriBags;
-    Foils foils;
-    FoilsHolder holder;
+    NutriBags_t nutriBags;
+    Foils_t foils;
+    FoilHolder_t holder;
 
     
     uint16_t currentBag = 0; // Current bag index
