@@ -27,6 +27,6 @@ bool who_am_i(uint8_t motor_id);
 void rms_current(uint8_t motor_id, uint16_t mA);
 void hold_current(uint8_t motor_id, uint8_t ihold_value);
 void microsteps(uint8_t motor_id, uint8_t mres_value);
-void silent_mode(bool enable);
+void silent_mode(uint8_t motor_id, bool enable);
 
 #endif /* STEPPERMOTOR_STEPPER_H_ */

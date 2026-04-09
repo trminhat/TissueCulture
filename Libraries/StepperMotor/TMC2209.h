@@ -20,7 +20,7 @@ bool tmc2209_who_am_i(uint8_t motor_id);
 void tmc2209_mres(uint8_t motor_id, uint8_t mres_value);
 void tmc2209_IRUN(uint8_t motor_id, uint8_t irun_value);
 void tmc2209_IHOLD(uint8_t motor_id, uint8_t ihold_value);
-void tmc2209_vsense(bool mode);
-void tmc2209_externalRsense(bool mode);
-void tmc2209_en_SpreadCycle(bool enable);
+void tmc2209_vsense(uint8_t motor_id, bool mode);
+void tmc2209_externalRsense(uint8_t motor_id, bool mode);
+void tmc2209_en_SpreadCycle(uint8_t motor_id, bool enable);
 #endif /* TMC_IC_TMC2209_H_ */

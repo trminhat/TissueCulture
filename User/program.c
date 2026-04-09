@@ -24,9 +24,9 @@ void motor_hold_current(uint8_t motor_id, uint16_t mA_hold)
     hold_current(motor_id, mA_hold);
 }
 
-void motor_silent_mode(bool enable)
+void motor_silent_mode(uint8_t motor_id, bool enable)
 {
-    silent_mode(enable);
+    silent_mode(motor_id, enable);
 }
 
 void check_motor_addr(uint8_t motor_id)

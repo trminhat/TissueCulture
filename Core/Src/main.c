@@ -40,6 +40,7 @@
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
+TIM_HandleTypeDef htim2;
 TIM_HandleTypeDef htim3;
 
 UART_HandleTypeDef huart1;
@@ -57,6 +58,7 @@ static void MX_USART2_UART_Init(void);
 static void MX_USART6_UART_Init(void);
 static void MX_USART1_UART_Init(void);
 static void MX_TIM3_Init(void);
+static void MX_TIM2_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -99,16 +101,25 @@ int main(void)
   MX_USART6_UART_Init();
   MX_USART1_UART_Init();
   MX_TIM3_Init();
+  MX_TIM2_Init();
   /* USER CODE BEGIN 2 */
 
   motor_begin(MOTOR_ID_0);
   check_motor_addr(MOTOR_ID_0);
-  motor_rms_current(MOTOR_ID_0, 530);            // Set RMS current to 800mA
-  motor_microstep(MOTOR_ID_0, MICRO_STEPPING_8); // Set microstepping to 1/16
-                                                 //  check_motor_addr(MOTOR_ID_0);
-  motor_silent_mode(false);                      // Enable SilentStepStick mode for quieter operation
+  motor_rms_current(MOTOR_ID_0, 530);              // Set RMS current
+  motor_microstep(MOTOR_ID_0, MICRO_STEPPING_128); // Set microstepping
+                                                   //  check_motor_addr(MOTOR_ID_0);
+  motor_silent_mode(MOTOR_ID_0, true);             // Enable SilentStepStick mode for quieter operation
+
+  motor_begin(MOTOR_ID_1);
+  check_motor_addr(MOTOR_ID_1);
+  motor_rms_current(MOTOR_ID_1, 530);              // Set RMS current
+  motor_microstep(MOTOR_ID_1, MICRO_STEPPING_128); // Set microstepping
+                                                   //  check_motor_addr(MOTOR_ID_0);
+  motor_silent_mode(MOTOR_ID_1, true);             // Enable SilentStepStick mode for quieter operation
 
   // Start PWM on Timer 1, Channel 3
+  HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_1);
   HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_1);
   /* USER CODE END 2 */
 
@@ -116,13 +127,18 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-    pwm_set_freq(10000);
-    motor_silent_mode(true); // Enable SilentStepStick mode for quieter operation
+    pwm_set_freq(&htim3, 10000);
     HAL_Delay(3000);
-    //    pwm_set_freq(1000);
-    motor_silent_mode(false); // Enable SilentStepStick mode for quieter operation
+    pwm_set_freq(&htim3, 1000);
     HAL_Delay(3000);
     __HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_1, htim3.Instance->ARR); // Set duty cycle to 25%
+
+    pwm_set_freq(&htim2, 10000);
+    HAL_Delay(3000);
+    pwm_set_freq(&htim2, 1000);
+    HAL_Delay(3000);
+    __HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_1, htim2.Instance->ARR); // Set duty cycle to 25%
+
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -172,6 +188,64 @@ void SystemClock_Config(void)
   {
     Error_Handler();
   }
+}
+
+/**
+ * @brief TIM2 Initialization Function
+ * @param None
+ * @retval None
+ */
+static void MX_TIM2_Init(void)
+{
+
+  /* USER CODE BEGIN TIM2_Init 0 */
+
+  /* USER CODE END TIM2_Init 0 */
+
+  TIM_ClockConfigTypeDef sClockSourceConfig = {0};
+  TIM_MasterConfigTypeDef sMasterConfig = {0};
+  TIM_OC_InitTypeDef sConfigOC = {0};
+
+  /* USER CODE BEGIN TIM2_Init 1 */
+
+  /* USER CODE END TIM2_Init 1 */
+  htim2.Instance = TIM2;
+  htim2.Init.Prescaler = 99;
+  htim2.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim2.Init.Period = 999;
+  htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  htim2.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_ENABLE;
+  if (HAL_TIM_Base_Init(&htim2) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
+  if (HAL_TIM_ConfigClockSource(&htim2, &sClockSourceConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  if (HAL_TIM_PWM_Init(&htim2) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
+  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+  if (HAL_TIMEx_MasterConfigSynchronization(&htim2, &sMasterConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sConfigOC.OCMode = TIM_OCMODE_PWM1;
+  sConfigOC.Pulse = 0;
+  sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
+  sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
+  if (HAL_TIM_PWM_ConfigChannel(&htim2, &sConfigOC, TIM_CHANNEL_1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN TIM2_Init 2 */
+
+  /* USER CODE END TIM2_Init 2 */
+  HAL_TIM_MspPostInit(&htim2);
 }
 
 /**
@@ -255,7 +329,7 @@ static void MX_USART1_UART_Init(void)
   huart1.Init.Mode = UART_MODE_TX_RX;
   huart1.Init.HwFlowCtl = UART_HWCONTROL_NONE;
   huart1.Init.OverSampling = UART_OVERSAMPLING_16;
-  if (HAL_HalfDuplex_Init(&huart1) != HAL_OK)
+  if (HAL_UART_Init(&huart1) != HAL_OK)
   {
     Error_Handler();
   }

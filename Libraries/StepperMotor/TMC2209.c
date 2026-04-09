@@ -64,31 +64,31 @@ void tmc2209_IHOLD(uint8_t motor_id, uint8_t ihold_value)
     tmc2209_fieldWrite(motor_id, TMC2209_IHOLD_FIELD, ihold_value);
 }
 
-void tmc2209_vsense(bool mode)
+void tmc2209_vsense(uint8_t motor_id, bool mode)
 {
-    tmc2209_fieldWrite(0, TMC2209_VSENSE_FIELD, mode ? 1 : 0);
+    tmc2209_fieldWrite(motor_id, TMC2209_VSENSE_FIELD, mode ? 1 : 0);
 }
 
-void tmc2209_externalRsense(bool mode)
+void tmc2209_externalRsense(uint8_t motor_id, bool mode)
 {
     // This function allows you to switch between using the internal sense resistor (if available) or an external one.
-    tmc2209_fieldWrite(0, TMC2209_INTERNAL_RSENSE_FIELD, mode ? 0 : 1);
+    tmc2209_fieldWrite(motor_id, TMC2209_INTERNAL_RSENSE_FIELD, mode ? 0 : 1);
 }
 
-void tmc2209_en_SpreadCycle(bool enable)
+void tmc2209_en_SpreadCycle(uint8_t motor_id, bool enable)
 {
-    tmc2209_fieldWrite(0, TMC2209_EN_SPREADCYCLE_FIELD, enable ? 1 : 0);
+    tmc2209_fieldWrite(motor_id, TMC2209_EN_SPREADCYCLE_FIELD, enable ? 1 : 0);
     if (enable)
     {
         // 1. Set TOFF to 3 (This enables the chopper)
-        tmc2209_fieldWrite(0, TMC2209_TOFF_FIELD, 3);
+        tmc2209_fieldWrite(motor_id, TMC2209_TOFF_FIELD, 3);
 
         // 2. Set Blank Time (TBL) to 2 (This ignores switching noise)
-        tmc2209_fieldWrite(0, TMC2209_TBL_FIELD, 2);
+        tmc2209_fieldWrite(motor_id, TMC2209_TBL_FIELD, 2);
 
         // 3. Set Hysteresis to standard values
-        tmc2209_fieldWrite(0, TMC2209_HSTRT_FIELD, 5);
-        tmc2209_fieldWrite(0, TMC2209_HEND_FIELD, 0);
-        tmc2209_fieldWrite(0, TMC2209_EN_SPREADCYCLE_FIELD, 0);
+        tmc2209_fieldWrite(motor_id, TMC2209_HSTRT_FIELD, 5);
+        tmc2209_fieldWrite(motor_id, TMC2209_HEND_FIELD, 0);
+        tmc2209_fieldWrite(motor_id, TMC2209_EN_SPREADCYCLE_FIELD, 0);
     }
 }

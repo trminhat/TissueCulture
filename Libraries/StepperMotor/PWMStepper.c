@@ -7,17 +7,15 @@
 
 #include "PWMStepper.h"
 
-extern TIM_HandleTypeDef htim3;
-
-void pwm_set_freq(uint32_t freq)
+void pwm_set_freq(TIM_HandleTypeDef *htim, uint32_t freq)
 {
     if (freq == 0)
         return; // Avoid division by zero
 
     uint32_t timer_clk;
     uint32_t ppre; // APB Prescaler value
-    if (htim3.Instance == TIM1 || htim3.Instance == TIM9 ||
-        htim3.Instance == TIM10 || htim3.Instance == TIM11)
+    if (htim->Instance == TIM1 || htim->Instance == TIM9 ||
+        htim->Instance == TIM10 || htim->Instance == TIM11)
     {
         timer_clk = HAL_RCC_GetPCLK2Freq();
         ppre = (RCC->CFGR & RCC_CFGR_PPRE2) >> RCC_CFGR_PPRE2_Pos;
@@ -48,12 +46,12 @@ void pwm_set_freq(uint32_t freq)
         psc = (total_div / 65536);
     }
     arr = (total_div / (psc + 1)) - 1;
-    htim3.Instance->PSC = psc;
-    htim3.Instance->ARR = arr;
-    htim3.Instance->CCR1 = (arr + 1) / 2; // Set duty cycle to 50% by default
+    htim->Instance->PSC = psc;
+    htim->Instance->ARR = arr;
+    htim->Instance->CCR1 = (arr + 1) / 2; // Set duty cycle to 50% by default
 
     // Generate an update event to apply PSC immediately
-    htim3.Instance->EGR = TIM_EGR_UG;
+    htim->Instance->EGR = TIM_EGR_UG;
 }
 
 void set_acceleration(uint32_t accel)
@@ -86,9 +84,9 @@ void set_direction(bool dir)
     // This would typically involve setting a GPIO pin high or low to control motor direction
 }
 
-void stop_motor()
+void stop_motor(TIM_HandleTypeDef *htim)
 {
     // Placeholder for motor stop logic
     // This could involve setting the PWM duty cycle to 0 or disabling the timer output
-    htim3.Instance->CCR1 = 0; // Set duty cycle to 0 to stop the motor
+    htim->Instance->CCR1 = 0; // Set duty cycle to 0 to stop the motor
 }

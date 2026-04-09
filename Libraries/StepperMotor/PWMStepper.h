@@ -13,14 +13,12 @@
 #include <stdbool.h>
 #include <stddef.h>
 
-
-void pwm_set_freq(uint32_t freq);
+void pwm_set_freq(TIM_HandleTypeDef *htim, uint32_t freq);
 void set_acceleration(uint32_t accel);
 void set_deceleration(uint32_t decel);
 void set_speed(uint32_t speed);
 void set_max_speed(uint32_t max_speed);
 void set_direction(bool dir);
-void stop_motor();
-
+void stop_motor(TIM_HandleTypeDef *htim);
 
 #endif /* STEPPERMOTOR_PWMSTEPPER_H_ */

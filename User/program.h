@@ -35,6 +35,6 @@ void motor_microstep(uint8_t motor_id, uint8_t mres_value);
 void motor_rms_current(uint8_t motor_id, uint16_t mA);
 void motor_hold_current(uint8_t motor_id, uint16_t mA_hold);
 void check_motor_addr(uint8_t motor_id);
-void motor_silent_mode(bool enable);
+void motor_silent_mode(uint8_t motor_id, bool enable);
 
 #endif /* PROGRAM_H_ */
