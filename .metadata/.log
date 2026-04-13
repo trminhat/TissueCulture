@@ -1,0 +1,65 @@
+!SESSION 2026-02-11 22:40:40.811 -----------------------------------------------
+eclipse.buildId=Version 2.0.0
+java.version=21.0.8
+java.vendor=Eclipse Adoptium
+BootLoader constants: OS=macosx, ARCH=x86_64, WS=cocoa, NL=en_VN
+Framework arguments:  -keyring /Users/tranminhnhat/.eclipse_keyring
+Command-line arguments:  -os macosx -ws cocoa -arch x86_64 -keyring /Users/tranminhnhat/.eclipse_keyring
+
+!ENTRY com.st.stm32cube.ide.mcu.informationcenter 1 1 2026-02-11 22:41:06.962
+!MESSAGE Log4j2 initialized with config file /Users/tranminhnhat/Works/Personal/STM32F4/TISSUE_CULTURE/.metadata/.log4j2.xml
+
+!ENTRY com.st.stm32cube.ide.mcu.ide 1 1 2026-02-11 22:41:12.147
+!MESSAGE Started RMI Server, listening on port 41337
+!SESSION 2026-02-23 19:53:31.184 -----------------------------------------------
+eclipse.buildId=Version 2.0.0
+java.version=21.0.8
+java.vendor=Eclipse Adoptium
+BootLoader constants: OS=macosx, ARCH=x86_64, WS=cocoa, NL=en_VN
+Framework arguments:  -keyring /Users/tranminhnhat/.eclipse_keyring
+Command-line arguments:  -os macosx -ws cocoa -arch x86_64 -keyring /Users/tranminhnhat/.eclipse_keyring
+
+!ENTRY com.st.stm32cube.ide.mcu.informationcenter 1 1 2026-02-23 19:54:28.566
+!MESSAGE Log4j2 initialized with config file /Users/tranminhnhat/Works/Personal/STM32F4/TISSUE_CULTURE/.metadata/.log4j2.xml
+
+!ENTRY com.st.stm32cube.ide.mcu.ide 1 1 2026-02-23 19:54:36.382
+!MESSAGE Started RMI Server, listening on port 41337
+!SESSION 2026-02-23 19:55:19.625 -----------------------------------------------
+eclipse.buildId=Version 2.0.0
+java.version=21.0.8
+java.vendor=Eclipse Adoptium
+BootLoader constants: OS=macosx, ARCH=x86_64, WS=cocoa, NL=en_VN
+Framework arguments:  -keyring /Users/tranminhnhat/.eclipse_keyring
+Command-line arguments:  -os macosx -ws cocoa -arch x86_64 -keyring /Users/tranminhnhat/.eclipse_keyring
+
+!ENTRY com.st.stm32cube.ide.mcu.informationcenter 1 1 2026-02-23 19:55:42.209
+!MESSAGE Log4j2 initialized with config file /Users/tranminhnhat/Works/Personal/STM32F4/TISSUE_CULTURE/.metadata/.log4j2.xml
+
+!ENTRY com.st.stm32cube.ide.mcu.ide 1 1 2026-02-23 19:55:49.536
+!MESSAGE Started RMI Server, listening on port 41337
+!SESSION 2026-02-23 19:58:57.757 -----------------------------------------------
+eclipse.buildId=Version 2.0.0
+java.version=21.0.8
+java.vendor=Eclipse Adoptium
+BootLoader constants: OS=macosx, ARCH=x86_64, WS=cocoa, NL=en_VN
+Framework arguments:  -keyring /Users/tranminhnhat/.eclipse_keyring
+Command-line arguments:  -os macosx -ws cocoa -arch x86_64 -keyring /Users/tranminhnhat/.eclipse_keyring
+
+!ENTRY com.st.stm32cube.ide.mcu.informationcenter 1 1 2026-02-23 19:59:07.812
+!MESSAGE Log4j2 initialized with config file /Users/tranminhnhat/Works/Personal/STM32F4/TISSUE_CULTURE/.metadata/.log4j2.xml
+
+!ENTRY com.st.stm32cube.ide.mcu.ide 1 1 2026-02-23 19:59:13.450
+!MESSAGE Started RMI Server, listening on port 41337
+!SESSION 2026-03-28 10:27:49.623 -----------------------------------------------
+eclipse.buildId=Version 2.0.0
+java.version=21.0.8
+java.vendor=Eclipse Adoptium
+BootLoader constants: OS=macosx, ARCH=x86_64, WS=cocoa, NL=en_VN
+Framework arguments:  -keyring /Users/tranminhnhat/.eclipse_keyring
+Command-line arguments:  -os macosx -ws cocoa -arch x86_64 -keyring /Users/tranminhnhat/.eclipse_keyring
+
+!ENTRY com.st.stm32cube.ide.mcu.informationcenter 1 1 2026-03-28 10:28:03.738
+!MESSAGE Log4j2 initialized with config file /Users/tranminhnhat/Works/Personal/Github/TissueCulture/.metadata/.log4j2.xml
+
+!ENTRY com.st.stm32cube.ide.mcu.ide 1 1 2026-03-28 10:28:08.268
+!MESSAGE Started RMI Server, listening on port 41337
